@@ -29,77 +29,57 @@ def get_sheets_client():
         print(f"Error initializing sheets client: {str(e)}")
         raise
 
-def get_or_create_sheet():
-    """Get or create the food database sheet."""
+def get_sheet():
+    """Get the existing food database sheet."""
     try:
         client = get_sheets_client()
 
         # Try to open existing sheet
         try:
-            sheet = client.open("Calorie Tracker Food Database").sheet1
+            # Update the sheet name to match the user's existing sheet
+            sheet = client.open("DB's Food Database").sheet1
+            return sheet
         except gspread.SpreadsheetNotFound:
-            # Create new sheet if it doesn't exist
-            spreadsheet = client.create("Calorie Tracker Food Database")
-            sheet = spreadsheet.sheet1
+            raise Exception("Could not find the sheet 'DB's Food Database'. Please make sure the sheet exists and is shared with the service account.")
 
-            # Set up headers
-            headers = ['name', 'calories', 'protein', 'fat', 'carbs']
-            sheet.insert_row(headers, 1)
-
-            # Add some initial food items
-            initial_data = [
-                ['Chicken Breast', 165, 31, 3.6, 0],
-                ['White Rice', 130, 2.7, 0.3, 28],
-                ['Egg', 72, 6.3, 4.8, 0.4],
-                ['Apple', 52, 0.3, 0.2, 14],
-                ['Banana', 89, 1.1, 0.3, 23],
-                ['Salmon', 208, 22, 13, 0]
-            ]
-
-            for row in initial_data:
-                sheet.append_row(row)
-
-        return sheet
     except Exception as e:
-        print(f"Error getting or creating sheet: {str(e)}")
+        print(f"Error getting sheet: {str(e)}")
         raise
 
 def get_all_foods():
     """Get all foods from the sheet as a pandas DataFrame."""
     try:
-        sheet = get_or_create_sheet()
+        sheet = get_sheet()
         data = sheet.get_all_records()
         if not data:
-            # If sheet is empty (except headers), return DataFrame with initial data
-            return pd.DataFrame({
-                'name': ['Chicken Breast', 'White Rice', 'Egg'],
-                'calories': [165, 130, 72],
-                'protein': [31, 2.7, 6.3],
-                'fat': [3.6, 0.3, 4.8],
-                'carbs': [0, 28, 0.4]
-            })
+            raise ValueError("No data found in the sheet")
         return pd.DataFrame(data)
     except Exception as e:
         print(f"Error getting foods from sheet: {str(e)}")
         # Return empty DataFrame with correct columns as fallback
-        return pd.DataFrame(columns=['name', 'calories', 'protein', 'fat', 'carbs'])
+        return pd.DataFrame()
 
 def add_food(food_data):
     """Add a new food item to the sheet."""
     try:
-        sheet = get_or_create_sheet()
+        sheet = get_sheet()
+        # Get the column headers from the sheet
+        headers = sheet.row_values(1)
+
         # Check if food already exists
         existing_foods = sheet.col_values(1)[1:]  # Get all food names except header
         if food_data['name'] in existing_foods:
             raise ValueError(f"Food item '{food_data['name']}' already exists")
 
-        row = [
-            food_data['name'],
-            food_data['calories'],
-            food_data['protein'],
-            food_data['fat'],
-            food_data['carbs']
-        ]
+        # Create a row with values in the correct order based on sheet headers
+        row = []
+        for header in headers:
+            # Convert header to lowercase for case-insensitive matching
+            header_key = header.lower().replace(' ', '_')
+            # Try to get the value using various possible key formats
+            value = food_data.get(header_key) or food_data.get(header.lower()) or food_data.get(header) or ''
+            row.append(value)
+
         sheet.append_row(row)
         return True
     except Exception as e:
