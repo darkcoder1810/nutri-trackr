@@ -1,7 +1,13 @@
 import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
-from utils import calculate_maintenance_calories, load_food_database, save_food_to_database
+from utils import (
+    calculate_maintenance_calories, 
+    load_food_database, 
+    save_food_to_database,
+    calculate_calories_from_macros,
+    food_exists_in_database
+)
 
 # Page configuration
 st.set_page_config(page_title="Calorie Tracker", layout="wide")
@@ -43,23 +49,46 @@ with st.sidebar:
 # Add new food to database
 st.header("Add New Food to Database")
 with st.expander("Add New Food"):
-    col1, col2 = st.columns(2)
+    # Food name with instant search
+    new_food_name = st.text_input("Food Name")
+    if new_food_name and food_exists_in_database(new_food_name):
+        st.warning(f"'{new_food_name}' already exists in the database")
+
+    col1, col2, col3 = st.columns(3)
+
     with col1:
-        new_food_name = st.text_input("Food Name")
-        new_food_calories = st.number_input("Calories (per 100g)", min_value=0.0, max_value=900.0, step=0.1)
-        new_food_protein = st.number_input("Protein (g per 100g)", min_value=0.0, max_value=100.0, step=0.1)
+        new_food_protein = st.number_input("Protein", min_value=0.0, max_value=100.0, step=0.1)
+        new_food_fat = st.number_input("Fat", min_value=0.0, max_value=100.0, step=0.1)
+        new_food_carbs = st.number_input("Carbs", min_value=0.0, max_value=100.0, step=0.1)
+
+        # Auto-calculate calories
+        calories = calculate_calories_from_macros(new_food_protein, new_food_fat, new_food_carbs)
+        st.metric("Calculated Calories", f"{calories:.1f} kcal")
+
     with col2:
-        new_food_fat = st.number_input("Fat (g per 100g)", min_value=0.0, max_value=100.0, step=0.1)
-        new_food_carbs = st.number_input("Carbs (g per 100g)", min_value=0.0, max_value=100.0, step=0.1)
+        new_food_weight = st.number_input("Weight", min_value=0.1, max_value=1000.0, value=100.0, step=0.1)
+        new_food_basis = st.selectbox("Basis", options=['gm', 'ml', 'p'])
+        new_food_category = st.selectbox("Category", options=['veg', 'non-veg'])
+        new_food_fibre = st.number_input("Fibre", min_value=0.0, max_value=100.0, step=0.1)
+
+    with col3:
+        new_food_avg_weight = st.text_input("Average Weight (optional)")
+        new_food_source = st.text_input("Source (optional)")
 
     if st.button("Add to Database"):
-        if new_food_name:
+        if new_food_name and not food_exists_in_database(new_food_name):
             new_food = {
                 'Food Name': new_food_name,
-                'Calories': new_food_calories,
                 'Protein': new_food_protein,
                 'Fat': new_food_fat,
-                'Carbs': new_food_carbs
+                'Carbs': new_food_carbs,
+                'Calories': calories,
+                'Weight': new_food_weight,
+                'Basis': new_food_basis,
+                'Category': new_food_category,
+                'Fibre': new_food_fibre,
+                'Avg Weight': new_food_avg_weight,
+                'Source': new_food_source
             }
             if save_food_to_database(new_food):
                 st.success("Food added to database!")
