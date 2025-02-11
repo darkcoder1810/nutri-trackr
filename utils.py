@@ -14,24 +14,59 @@ def load_food_database():
     try:
         df = get_all_foods()
         if df.empty:
-            st.warning("No food items found in the database. Adding some default items...")
-            df = pd.DataFrame({
-                'name': ['Chicken Breast', 'White Rice', 'Egg'],
-                'calories': [165, 130, 72],
-                'protein': [31, 2.7, 6.3],
-                'fat': [3.6, 0.3, 4.8],
-                'carbs': [0, 28, 0.4]
-            })
+            st.warning("No food items found in the database.")
+            return pd.DataFrame(columns=['Food Name', 'Calories', 'Protein', 'Fat', 'Carbs'])
+
+        # Ensure column names match exactly with the sheet
+        # Map the column names to our expected format
+        column_mapping = {
+            'Food Name': ['Food Name', 'food name', 'name', 'Food'],
+            'Calories': ['Calories', 'calories', 'kcal'],
+            'Protein': ['Protein', 'protein', 'proteins'],
+            'Fat': ['Fat', 'fat', 'fats'],
+            'Carbs': ['Carbs', 'carbs', 'carbohydrates']
+        }
+
+        # Map columns to standardized names
+        for std_name, possible_names in column_mapping.items():
+            for col in df.columns:
+                if col.lower() in [name.lower() for name in possible_names]:
+                    df = df.rename(columns={col: std_name})
+                    break
+
+        # Ensure all required columns exist
+        required_columns = ['Food Name', 'Calories', 'Protein', 'Fat', 'Carbs']
+        missing_columns = set(required_columns) - set(df.columns)
+
+        if missing_columns:
+            st.error(f"Missing required columns in sheet: {', '.join(missing_columns)}")
+            return pd.DataFrame(columns=required_columns)
+
+        # Convert numeric columns
+        numeric_columns = ['Calories', 'Protein', 'Fat', 'Carbs']
+        for col in numeric_columns:
+            if col in df.columns:
+                df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0)
+
         return df
+
     except Exception as e:
         st.error(f"Error loading food database: {str(e)}")
-        # Return a minimal DataFrame with the correct columns
-        return pd.DataFrame(columns=['name', 'calories', 'protein', 'fat', 'carbs'])
+        return pd.DataFrame(columns=['Food Name', 'Calories', 'Protein', 'Fat', 'Carbs'])
 
 def save_food_to_database(food_data: dict):
     """Save a new food item to the Google Sheet."""
     try:
-        add_food(food_data)
+        # Map the standardized names back to the sheet's format
+        food_item = {
+            'Food Name': food_data.get('name', ''),
+            'Calories': food_data.get('calories', 0),
+            'Protein': food_data.get('protein', 0),
+            'Fat': food_data.get('fat', 0),
+            'Carbs': food_data.get('carbs', 0)
+        }
+
+        add_food(food_item)
         st.cache_data.clear()  # Clear cache to reload updated data
         return True
     except ValueError as ve:

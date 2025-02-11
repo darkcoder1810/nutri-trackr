@@ -33,7 +33,7 @@ with st.sidebar:
     maintenance_calories = calculate_maintenance_calories(weight)
     st.write(f"Maintenance Calories: {maintenance_calories:.0f} kcal")
 
-    # Daily goals - using float for all numeric inputs
+    # Daily goals
     st.header("Daily Goals")
     calorie_goal = st.number_input("Calorie Goal", min_value=1200.0, max_value=5000.0, value=float(maintenance_calories), step=50.0)
     protein_goal = st.number_input("Protein Goal (g)", min_value=30.0, max_value=300.0, value=float(weight * 2), step=5.0)
@@ -55,19 +55,16 @@ with st.expander("Add New Food"):
     if st.button("Add to Database"):
         if new_food_name:
             new_food = {
-                'name': new_food_name,
-                'calories': new_food_calories,
-                'protein': new_food_protein,
-                'fat': new_food_fat,
-                'carbs': new_food_carbs
+                'Food Name': new_food_name,
+                'Calories': new_food_calories,
+                'Protein': new_food_protein,
+                'Fat': new_food_fat,
+                'Carbs': new_food_carbs
             }
-            try:
-                save_food_to_database(new_food)
+            if save_food_to_database(new_food):
                 st.success("Food added to database!")
                 # Reload the food database
                 food_db = load_food_database()
-            except Exception as e:
-                st.error(f"Error adding food to database: {str(e)}")
 
 # Food logging section
 st.header("Log Your Meals")
@@ -79,26 +76,37 @@ for meal_type in meal_types:
         col1, col2, col3 = st.columns([2, 1, 1])
 
         with col1:
-            food_selection = st.selectbox(f"Select food for {meal_type}", 
-                                          options=food_db['name'].tolist(),
-                                          key=f"food_select_{meal_type}")
+            # Only show food selection if database has items
+            if not food_db.empty and 'Food Name' in food_db.columns:
+                food_selection = st.selectbox(
+                    f"Select food for {meal_type}", 
+                    options=food_db['Food Name'].tolist(),
+                    key=f"food_select_{meal_type}"
+                )
+            else:
+                st.warning("No foods available in database")
+                continue
+
         with col2:
-            portion = st.number_input("Portion (g)", 
-                                      min_value=0.0, 
-                                      max_value=1000.0, 
-                                      value=100.0,
-                                      step=10.0,
-                                      key=f"portion_{meal_type}")
+            portion = st.number_input(
+                "Portion (g)", 
+                min_value=0.0, 
+                max_value=1000.0, 
+                value=100.0,
+                step=10.0,
+                key=f"portion_{meal_type}"
+            )
+
         with col3:
             if st.button("Add", key=f"add_{meal_type}"):
-                food_item = food_db[food_db['name'] == food_selection].iloc[0]
+                food_item = food_db[food_db['Food Name'] == food_selection].iloc[0]
                 multiplier = portion / 100
                 logged_item = {
-                    'name': food_item['name'],
-                    'calories': food_item['calories'] * multiplier,
-                    'protein': food_item['protein'] * multiplier,
-                    'fat': food_item['fat'] * multiplier,
-                    'carbs': food_item['carbs'] * multiplier,
+                    'name': food_item['Food Name'],
+                    'calories': food_item['Calories'] * multiplier,
+                    'protein': food_item['Protein'] * multiplier,
+                    'fat': food_item['Fat'] * multiplier,
+                    'carbs': food_item['Carbs'] * multiplier,
                     'portion': portion
                 }
                 st.session_state.daily_log[meal_type].append(logged_item)
@@ -117,11 +125,11 @@ col1, col2, col3, col4 = st.columns(4)
 
 with col1:
     fig = go.Figure(go.Indicator(
-        mode = "gauge+number",
-        value = total_calories,
-        domain = {'x': [0, 1], 'y': [0, 1]},
-        title = {'text': "Calories"},
-        gauge = {
+        mode="gauge+number",
+        value=total_calories,
+        domain={'x': [0, 1], 'y': [0, 1]},
+        title={'text': "Calories"},
+        gauge={
             'axis': {'range': [None, calorie_goal]},
             'bar': {'color': "#2ECC71"},
             'threshold': {
@@ -135,11 +143,11 @@ with col1:
 
 with col2:
     fig = go.Figure(go.Indicator(
-        mode = "gauge+number",
-        value = total_protein,
-        domain = {'x': [0, 1], 'y': [0, 1]},
-        title = {'text': "Protein (g)"},
-        gauge = {
+        mode="gauge+number",
+        value=total_protein,
+        domain={'x': [0, 1], 'y': [0, 1]},
+        title={'text': "Protein (g)"},
+        gauge={
             'axis': {'range': [None, protein_goal]},
             'bar': {'color': "#3498DB"},
             'threshold': {
@@ -153,11 +161,11 @@ with col2:
 
 with col3:
     fig = go.Figure(go.Indicator(
-        mode = "gauge+number",
-        value = total_fat,
-        domain = {'x': [0, 1], 'y': [0, 1]},
-        title = {'text': "Fat (g)"},
-        gauge = {
+        mode="gauge+number",
+        value=total_fat,
+        domain={'x': [0, 1], 'y': [0, 1]},
+        title={'text': "Fat (g)"},
+        gauge={
             'axis': {'range': [None, fat_goal]},
             'bar': {'color': "#E74C3C"},
             'threshold': {
@@ -171,11 +179,11 @@ with col3:
 
 with col4:
     fig = go.Figure(go.Indicator(
-        mode = "gauge+number",
-        value = total_carbs,
-        domain = {'x': [0, 1], 'y': [0, 1]},
-        title = {'text': "Carbs (g)"},
-        gauge = {
+        mode="gauge+number",
+        value=total_carbs,
+        domain={'x': [0, 1], 'y': [0, 1]},
+        title={'text': "Carbs (g)"},
+        gauge={
             'axis': {'range': [None, carb_goal]},
             'bar': {'color': "#F1C40F"},
             'threshold': {
