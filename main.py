@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
-from utils import calculate_maintenance_calories, load_food_database, save_food_database
+from utils import calculate_maintenance_calories, load_food_database, save_food_to_database
 
 # Page configuration
 st.set_page_config(page_title="Calorie Tracker", layout="wide")
@@ -61,9 +61,13 @@ with st.expander("Add New Food"):
                 'fat': new_food_fat,
                 'carbs': new_food_carbs
             }
-            food_db = pd.concat([food_db, pd.DataFrame([new_food])], ignore_index=True)
-            save_food_database(food_db)
-            st.success("Food added to database!")
+            try:
+                save_food_to_database(new_food)
+                st.success("Food added to database!")
+                # Reload the food database
+                food_db = load_food_database()
+            except Exception as e:
+                st.error(f"Error adding food to database: {str(e)}")
 
 # Food logging section
 st.header("Log Your Meals")
@@ -76,15 +80,15 @@ for meal_type in meal_types:
 
         with col1:
             food_selection = st.selectbox(f"Select food for {meal_type}", 
-                                      options=food_db['name'].tolist(),
-                                      key=f"food_select_{meal_type}")
+                                          options=food_db['name'].tolist(),
+                                          key=f"food_select_{meal_type}")
         with col2:
             portion = st.number_input("Portion (g)", 
-                                  min_value=0.0, 
-                                  max_value=1000.0, 
-                                  value=100.0,
-                                  step=10.0,
-                                  key=f"portion_{meal_type}")
+                                      min_value=0.0, 
+                                      max_value=1000.0, 
+                                      value=100.0,
+                                      step=10.0,
+                                      key=f"portion_{meal_type}")
         with col3:
             if st.button("Add", key=f"add_{meal_type}"):
                 food_item = food_db[food_db['name'] == food_selection].iloc[0]
