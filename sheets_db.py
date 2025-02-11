@@ -3,6 +3,7 @@ import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 import os
 import pandas as pd
+import streamlit as st
 
 def get_sheets_client():
     """Initialize and return Google Sheets client."""
@@ -14,19 +15,31 @@ def get_sheets_client():
 
         credentials_dict = json.loads(creds_json)
 
-        # Define the scope
-        scope = ['https://spreadsheets.google.com/feeds',
-                'https://www.googleapis.com/auth/drive']
+        # Define the scope - explicitly include both APIs
+        scope = [
+            'https://spreadsheets.google.com/feeds',
+            'https://www.googleapis.com/auth/drive',
+            'https://www.googleapis.com/auth/spreadsheets'
+        ]
 
         # Authorize with credentials
         creds = ServiceAccountCredentials.from_json_keyfile_dict(credentials_dict, scope)
         client = gspread.authorize(creds)
 
+        # Test the connection by listing spreadsheets
+        try:
+            client.list_spreadsheet_files()
+        except Exception as e:
+            if "PERMISSION_DENIED" in str(e):
+                st.error("Google Drive API access denied. Please ensure the API is enabled in Google Cloud Console.")
+            raise
+
         return client
     except json.JSONDecodeError:
-        raise Exception("Invalid JSON format in Google Sheets credentials")
+        st.error("Invalid JSON format in Google Sheets credentials")
+        raise
     except Exception as e:
-        print(f"Error initializing sheets client: {str(e)}")
+        st.error(f"Error initializing sheets client: {str(e)}")
         raise
 
 def get_sheet():
@@ -34,29 +47,44 @@ def get_sheet():
     try:
         client = get_sheets_client()
 
-        # Try to open existing sheet
         try:
             # Update the sheet name to match the user's existing sheet
             sheet = client.open("DB's Food Database").sheet1
+            # Test sheet access
+            sheet.row_values(1)
             return sheet
         except gspread.SpreadsheetNotFound:
-            raise Exception("Could not find the sheet 'DB's Food Database'. Please make sure the sheet exists and is shared with the service account.")
+            st.error("Could not find the sheet 'DB's Food Database'. Please make sure the sheet exists and is shared with the service account.")
+            raise
+        except Exception as e:
+            if "PERMISSION_DENIED" in str(e):
+                st.error("Access denied to the sheet. Please ensure the sheet is shared with the service account email.")
+            raise
 
     except Exception as e:
-        print(f"Error getting sheet: {str(e)}")
+        st.error(f"Error accessing sheet: {str(e)}")
         raise
 
 def get_all_foods():
     """Get all foods from the sheet as a pandas DataFrame."""
     try:
         sheet = get_sheet()
+        # Get headers first to validate structure
+        headers = sheet.row_values(1)
+        if not headers:
+            st.warning("Sheet appears to be empty. Please check if data exists.")
+            return pd.DataFrame()
+
         data = sheet.get_all_records()
         if not data:
-            raise ValueError("No data found in the sheet")
-        return pd.DataFrame(data)
+            st.warning("No data found in the sheet (only headers present)")
+            return pd.DataFrame(columns=headers)
+
+        df = pd.DataFrame(data)
+        st.success(f"Successfully loaded {len(df)} food items from database")
+        return df
     except Exception as e:
-        print(f"Error getting foods from sheet: {str(e)}")
-        # Return empty DataFrame with correct columns as fallback
+        st.error(f"Error loading foods from sheet: {str(e)}")
         return pd.DataFrame()
 
 def add_food(food_data):
@@ -65,6 +93,9 @@ def add_food(food_data):
         sheet = get_sheet()
         # Get the column headers from the sheet
         headers = sheet.row_values(1)
+        if not headers:
+            st.error("Sheet headers not found")
+            raise ValueError("Sheet headers not found")
 
         # Check if food already exists
         existing_foods = sheet.col_values(1)[1:]  # Get all food names except header
@@ -81,7 +112,8 @@ def add_food(food_data):
             row.append(value)
 
         sheet.append_row(row)
+        st.success(f"Successfully added {food_data['name']} to database")
         return True
     except Exception as e:
-        print(f"Error adding food to sheet: {str(e)}")
+        st.error(f"Error adding food to sheet: {str(e)}")
         raise
