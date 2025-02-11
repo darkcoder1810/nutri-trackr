@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 from utils import load_food_database
+from sheets_db import delete_food
 
 # Page config
 st.set_page_config(
@@ -39,7 +40,7 @@ with col3:
 # Display the full database
 st.header("Food Items")
 
-# Add search functionality
+# Add search functionality with autocomplete
 search_term = st.text_input("Search foods", "")
 
 # Filter the database based on search
@@ -62,19 +63,31 @@ if not food_db.empty:
         ascending=(sort_order == 'Ascending')
     )
 
-# Display the table
+# Display the table with delete buttons
 if not filtered_db.empty:
-    st.dataframe(
-        filtered_db,
-        column_config={
-            "Food Name": "Food Name",
-            "Calories": st.column_config.NumberColumn("Calories (kcal)", format="%.1f"),
-            "Protein": st.column_config.NumberColumn("Protein (g)", format="%.1f"),
-            "Fat": st.column_config.NumberColumn("Fat (g)", format="%.1f"),
-            "Carbs": st.column_config.NumberColumn("Carbs (g)", format="%.1f"),
-        },
-        hide_index=True,
-    )
+    # Create two columns - one for the dataframe and one for delete buttons
+    col1, col2 = st.columns([8, 1])
+
+    with col1:
+        st.dataframe(
+            filtered_db,
+            column_config={
+                "Food Name": "Food Name",
+                "Calories": st.column_config.NumberColumn("Calories (kcal)", format="%.1f"),
+                "Protein": st.column_config.NumberColumn("Protein (g)", format="%.1f"),
+                "Fat": st.column_config.NumberColumn("Fat (g)", format="%.1f"),
+                "Carbs": st.column_config.NumberColumn("Carbs (g)", format="%.1f"),
+            },
+            hide_index=True,
+        )
+
+    with col2:
+        st.write("Actions")
+        for idx, row in filtered_db.iterrows():
+            if st.button("🗑️", key=f"delete_{idx}", help=f"Delete {row['Food Name']}"):
+                if delete_food(row['Food Name']):
+                    st.cache_data.clear()
+                    st.experimental_rerun()
 else:
     st.warning("No data available in the database")
 

@@ -48,7 +48,6 @@ def get_sheet():
         client = get_sheets_client()
 
         try:
-            # Update the sheet name to match the user's existing sheet
             sheet = client.open("DB's Food Database").sheet1
             # Test sheet access
             sheet.row_values(1)
@@ -64,6 +63,27 @@ def get_sheet():
     except Exception as e:
         st.error(f"Error accessing sheet: {str(e)}")
         raise
+
+def delete_food(food_name: str) -> bool:
+    """Delete a food item from the sheet."""
+    try:
+        sheet = get_sheet()
+        # Get all food names
+        food_names = sheet.col_values(1)  # Assuming Food Name is in first column
+
+        # Find the row index of the food item (adding 1 because sheet rows are 1-based)
+        try:
+            row_idx = food_names.index(food_name) + 1
+            sheet.delete_rows(row_idx)
+            st.success(f"Successfully deleted {food_name} from database")
+            return True
+        except ValueError:
+            st.error(f"Food item '{food_name}' not found in database")
+            return False
+
+    except Exception as e:
+        st.error(f"Error deleting food from sheet: {str(e)}")
+        return False
 
 def get_all_foods():
     """Get all foods from the sheet as a pandas DataFrame."""
@@ -99,8 +119,8 @@ def add_food(food_data):
 
         # Check if food already exists
         existing_foods = sheet.col_values(1)[1:]  # Get all food names except header
-        if food_data['name'] in existing_foods:
-            raise ValueError(f"Food item '{food_data['name']}' already exists")
+        if food_data['Food Name'] in existing_foods:
+            raise ValueError(f"Food item '{food_data['Food Name']}' already exists")
 
         # Create a row with values in the correct order based on sheet headers
         row = []
@@ -108,11 +128,11 @@ def add_food(food_data):
             # Convert header to lowercase for case-insensitive matching
             header_key = header.lower().replace(' ', '_')
             # Try to get the value using various possible key formats
-            value = food_data.get(header_key) or food_data.get(header.lower()) or food_data.get(header) or ''
+            value = food_data.get(header) or food_data.get(header.lower()) or ''
             row.append(value)
 
         sheet.append_row(row)
-        st.success(f"Successfully added {food_data['name']} to database")
+        st.success(f"Successfully added {food_data['Food Name']} to database")
         return True
     except Exception as e:
         st.error(f"Error adding food to sheet: {str(e)}")

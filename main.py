@@ -105,11 +105,20 @@ for meal_type in meal_types:
         col1, col2, col3 = st.columns([2, 1, 1])
 
         with col1:
-            # Only show food selection if database has items
+            # Food selection with search
             if not food_db.empty and 'Food Name' in food_db.columns:
+                # Add a search box
+                search_query = st.text_input("Search", key=f"search_{meal_type}")
+
+                # Filter food options based on search
+                if search_query:
+                    filtered_options = food_db[food_db['Food Name'].str.contains(search_query, case=False)]
+                else:
+                    filtered_options = food_db
+
                 food_selection = st.selectbox(
                     f"Select food for {meal_type}", 
-                    options=food_db['Food Name'].tolist(),
+                    options=filtered_options['Food Name'].tolist(),
                     key=f"food_select_{meal_type}"
                 )
             else:
@@ -117,26 +126,36 @@ for meal_type in meal_types:
                 continue
 
         with col2:
+            # Get the basis for the selected food
+            selected_food = food_db[food_db['Food Name'] == food_selection].iloc[0]
+            basis = selected_food.get('Basis', 'gm')
+
+            # Display portion input with dynamic unit
+            portion_unit = 'p' if basis == 'p' else ('ml' if basis == 'ml' else 'gm')
             portion = st.number_input(
-                "Portion (g)", 
+                f"Portion ({portion_unit})", 
                 min_value=0.0, 
                 max_value=1000.0, 
-                value=100.0,
-                step=10.0,
+                value=100.0 if basis != 'p' else 1.0,
+                step=1.0 if basis == 'p' else 10.0,
                 key=f"portion_{meal_type}"
             )
 
         with col3:
             if st.button("Add", key=f"add_{meal_type}"):
                 food_item = food_db[food_db['Food Name'] == food_selection].iloc[0]
-                multiplier = portion / 100
+                # Calculate multiplier based on basis
+                base_weight = 100 if basis != 'p' else 1
+                multiplier = portion / base_weight
+
                 logged_item = {
                     'name': food_item['Food Name'],
                     'calories': food_item['Calories'] * multiplier,
                     'protein': food_item['Protein'] * multiplier,
                     'fat': food_item['Fat'] * multiplier,
                     'carbs': food_item['Carbs'] * multiplier,
-                    'portion': portion
+                    'portion': portion,
+                    'unit': portion_unit
                 }
                 st.session_state.daily_log[meal_type].append(logged_item)
 
