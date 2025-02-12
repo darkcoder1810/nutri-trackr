@@ -151,8 +151,9 @@ with st.expander("Add New Food"):
                 for key in list(st.session_state.keys()):
                     if key.startswith('new_food_'):
                         del st.session_state[key]
-                # Force a rerun to reset the form
-                st.experimental_rerun()
+                # Reload the food database and reset the form
+                st.cache_data.clear()
+                st.rerun()
 
 # Food logging section
 st.header("Log Your Meals")
