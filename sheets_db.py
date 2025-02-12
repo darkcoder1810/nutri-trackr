@@ -69,11 +69,16 @@ def delete_food(food_name: str) -> bool:
     try:
         sheet = get_sheet()
         # Get all food names
-        food_names = sheet.col_values(1)  # Assuming Food Name is in first column
+        food_names = sheet.col_values(1)[1:]  # Skip header and get food names
 
-        # Find the row index of the food item (adding 1 because sheet rows are 1-based)
+        # Normalize food names for comparison (strip whitespace and convert to lowercase)
+        food_name = food_name.strip()
+        normalized_food_names = [name.strip().lower() for name in food_names]
+        normalized_search = food_name.lower()
+
         try:
-            row_idx = food_names.index(food_name) + 1
+            # Find the row index (add 2 because: +1 for header, +1 for 1-based index)
+            row_idx = normalized_food_names.index(normalized_search) + 2
             sheet.delete_rows(row_idx)
             st.success(f"Successfully deleted {food_name} from database")
             return True
@@ -119,7 +124,7 @@ def add_food(food_data):
 
         # Check if food already exists
         existing_foods = sheet.col_values(1)[1:]  # Get all food names except header
-        if food_data['Food Name'] in existing_foods:
+        if food_data['Food Name'].strip().lower() in [f.strip().lower() for f in existing_foods]:
             raise ValueError(f"Food item '{food_data['Food Name']}' already exists")
 
         # Create a row with values in the correct order based on sheet headers
@@ -130,26 +135,35 @@ def add_food(food_data):
             key_variants = [
                 header,
                 header.lower(),
-                header.replace(' ', '_'),
+                header.replace(' ', '_').lower(),
                 header.lower().replace(' ', '_')
             ]
+
+            # First try exact matches
             for key in key_variants:
                 if key in food_data:
                     value = food_data[key]
                     break
 
-            # If still no value found, try common aliases
+            # If no value found, try special cases
             if value is None:
-                if header.lower() == 'fat':
-                    value = food_data.get('fat', 0)
-                elif header.lower() == 'category':
-                    value = food_data.get('category', 'veg')
+                header_lower = header.lower()
+                if header_lower == 'fat':
+                    value = food_data.get('Fat', food_data.get('fat', 0))
+                elif header_lower == 'category':
+                    value = food_data.get('Category', food_data.get('category', 'veg'))
+                elif header_lower == 'basis':
+                    value = food_data.get('Basis', food_data.get('basis', 'gm'))
 
             row.append(value if value is not None else '')
+
+        # Debug logging
+        st.write(f"Adding row: {list(zip(headers, row))}")
 
         sheet.append_row(row)
         st.success(f"Successfully added {food_data['Food Name']} to database")
         return True
+
     except Exception as e:
         st.error(f"Error adding food to sheet: {str(e)}")
         raise
