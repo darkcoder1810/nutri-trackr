@@ -157,8 +157,16 @@ with st.expander("Add New Food"):
             }
             if save_food_to_database(new_food):
                 st.success("Food added successfully!")
-                # Set a flag to indicate form should be reset
-                st.session_state.reset_form = True
+                # Reset form fields to default values
+                st.session_state.new_food_name = ""
+                st.session_state.new_food_protein = 0.0
+                st.session_state.new_food_fat = 0.0
+                st.session_state.new_food_carbs = 0.0
+                st.session_state.new_food_fibre = 0.0
+                st.session_state.new_food_basis = "gm"
+                st.session_state.new_food_category = "veg"
+                st.session_state.new_food_avg_weight = ""
+                st.session_state.new_food_source = ""
                 # Reload the food database and reset the form
                 st.cache_data.clear()
                 st.rerun()
