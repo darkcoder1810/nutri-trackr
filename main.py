@@ -2,8 +2,9 @@ import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
 from utils import (
-    calculate_maintenance_calories, 
-    load_food_database, 
+    calculate_calories,
+    calculate_macros,
+    load_food_database,
     save_food_to_database,
     calculate_calories_from_macros,
     food_exists_in_database
@@ -25,6 +26,15 @@ if 'daily_log' not in st.session_state:
         'dinner': []
     }
 
+# Initialize user information in session state
+if 'user_info' not in st.session_state:
+    st.session_state.user_info = {
+        'weight': 70.0,
+        'calorie_mode': 'maintenance',
+        'protein_per_kg': 2.0,
+        'fat_percent': 0.25
+    }
+
 # Load food database
 food_db = load_food_database()
 
@@ -34,46 +44,86 @@ st.title("🥗 Calorie & Macro Tracker")
 # Sidebar for user info and goals
 with st.sidebar:
     st.header("User Information")
-    weight = st.number_input("Weight (kg)", min_value=30.0, max_value=200.0, value=70.0, step=0.1)
+    weight = st.number_input(
+        "Weight (kg)",
+        min_value=30.0,
+        max_value=200.0,
+        value=st.session_state.user_info['weight'],
+        step=0.1,
+        key='weight_input'
+    )
+    st.session_state.user_info['weight'] = weight
 
-    maintenance_calories = calculate_maintenance_calories(weight)
-    st.write(f"Maintenance Calories: {maintenance_calories:.0f} kcal")
+    # Calorie mode selection
+    st.header("Calorie Mode")
+    calorie_mode = st.radio(
+        "Select calorie target",
+        options=['maintenance', 'bulk', 'deficit'],
+        index=['maintenance', 'bulk', 'deficit'].index(st.session_state.user_info['calorie_mode'])
+    )
+    st.session_state.user_info['calorie_mode'] = calorie_mode
 
-    # Daily goals
-    st.header("Daily Goals")
-    calorie_goal = st.number_input("Calorie Goal", min_value=1200.0, max_value=5000.0, value=float(maintenance_calories), step=50.0)
-    protein_goal = st.number_input("Protein Goal (g)", min_value=30.0, max_value=300.0, value=float(weight * 2), step=5.0)
-    fat_goal = st.number_input("Fat Goal (g)", min_value=20.0, max_value=200.0, value=float(calorie_goal * 0.25 / 9), step=5.0)
-    carb_goal = st.number_input("Carb Goal (g)", min_value=50.0, max_value=500.0, value=float((calorie_goal - (protein_goal * 4 + fat_goal * 9)) / 4), step=5.0)
+    # Macro customization
+    st.header("Macro Settings")
+    protein_per_kg = st.slider(
+        "Protein (g) per kg of bodyweight",
+        1.6, 3.0,
+        st.session_state.user_info['protein_per_kg'],
+        0.1
+    )
+    st.session_state.user_info['protein_per_kg'] = protein_per_kg
+
+    fat_percent = st.slider(
+        "Fat (% of total calories)",
+        20, 35,
+        int(st.session_state.user_info['fat_percent'] * 100),
+        5
+    ) / 100
+    st.session_state.user_info['fat_percent'] = fat_percent
+
+    # Calculate target calories based on mode
+    target_calories = calculate_calories(weight, calorie_mode)
+    protein_target, fat_target, carb_target = calculate_macros(
+        target_calories,
+        protein_per_kg,
+        fat_percent,
+        weight
+    )
+
+    # Display calculated targets
+    st.markdown("### Daily Targets")
+    st.write(f"Target Calories: {target_calories:.0f} kcal")
+    st.write(f"Protein: {protein_target:.1f}g")
+    st.write(f"Fat: {fat_target:.1f}g")
+    st.write(f"Carbs: {carb_target:.1f}g")
 
 # Add new food to database
 st.header("Add New Food")
 with st.expander("Add New Food"):
-    # Food name with instant search
-    new_food_name = st.text_input("Food Name")
-    if new_food_name and food_exists_in_database(new_food_name):
-        st.warning(f"'{new_food_name}' already exists in the database")
-
     col1, col2, col3 = st.columns(3)
 
     with col1:
-        new_food_protein = st.number_input("Protein", min_value=0.0, max_value=100.0, step=0.1)
-        new_food_fat = st.number_input("Fat", min_value=0.0, max_value=100.0, step=0.1)
-        new_food_carbs = st.number_input("Carbs", min_value=0.0, max_value=100.0, step=0.1)
+        new_food_name = st.text_input("Food Name", key='new_food_name')
+        if new_food_name and food_exists_in_database(new_food_name):
+            st.warning(f"'{new_food_name}' already exists in the database")
+
+        new_food_protein = st.number_input("Protein", min_value=0.0, max_value=100.0, step=0.1, key='new_food_protein')
+        new_food_fat = st.number_input("Fat", min_value=0.0, max_value=100.0, step=0.1, key='new_food_fat')
+        new_food_carbs = st.number_input("Carbs", min_value=0.0, max_value=100.0, step=0.1, key='new_food_carbs')
 
         # Auto-calculate calories
         calories = calculate_calories_from_macros(new_food_protein, new_food_fat, new_food_carbs)
         st.metric("Calculated Calories", f"{calories:.1f} kcal")
 
     with col2:
-        new_food_weight = st.number_input("Weight", min_value=0.1, max_value=1000.0, value=100.0, step=0.1)
-        new_food_basis = st.selectbox("Basis", options=['gm', 'ml', 'p'])
-        new_food_category = st.selectbox("Category", options=['veg', 'non-veg'])
-        new_food_fibre = st.number_input("Fibre", min_value=0.0, max_value=100.0, step=0.1)
+        new_food_weight = st.number_input("Weight", min_value=0.1, max_value=1000.0, value=100.0, step=0.1, key='new_food_weight')
+        new_food_basis = st.selectbox("Basis", options=['gm', 'ml', 'p'], key='new_food_basis')
+        new_food_category = st.selectbox("Category", options=['veg', 'non-veg'], key='new_food_category')
+        new_food_fibre = st.number_input("Fibre", min_value=0.0, max_value=100.0, step=0.1, key='new_food_fibre')
 
     with col3:
-        new_food_avg_weight = st.text_input("Average Weight (optional)")
-        new_food_source = st.text_input("Source (optional)")
+        new_food_avg_weight = st.text_input("Average Weight (optional)", key='new_food_avg_weight')
+        new_food_source = st.text_input("Source (optional)", key='new_food_source')
 
     if st.button("Add to Database"):
         if new_food_name and not food_exists_in_database(new_food_name):
@@ -92,8 +142,11 @@ with st.expander("Add New Food"):
             }
             if save_food_to_database(new_food):
                 st.success("Food added successfully!")
-                st.cache_data.clear()  # Clear cache to reload data
-                st.rerun()  # Rerun the app to reset form fields
+                # Reset form by clearing the session state for all form fields
+                for key in st.session_state.keys():
+                    if key.startswith('new_food_'):
+                        del st.session_state[key]
+                st.rerun()
 
 # Food logging section
 st.header("Log Your Meals")
@@ -117,7 +170,7 @@ for meal_type in meal_types:
                     filtered_options = food_db
 
                 food_selection = st.selectbox(
-                    f"Select food for {meal_type}", 
+                    f"Select food for {meal_type}",
                     options=filtered_options['Food Name'].tolist(),
                     key=f"food_select_{meal_type}"
                 )
@@ -133,9 +186,9 @@ for meal_type in meal_types:
             # Display portion input with dynamic unit
             portion_unit = 'p' if basis == 'p' else ('ml' if basis == 'ml' else 'gm')
             portion = st.number_input(
-                f"Portion ({portion_unit})", 
-                min_value=0.0, 
-                max_value=1000.0, 
+                f"Portion ({portion_unit})",
+                min_value=0.0,
+                max_value=1000.0,
                 value=100.0 if basis != 'p' else 1.0,
                 step=1.0 if basis == 'p' else 10.0,
                 key=f"portion_{meal_type}"
@@ -178,12 +231,12 @@ with col1:
         domain={'x': [0, 1], 'y': [0, 1]},
         title={'text': "Calories"},
         gauge={
-            'axis': {'range': [None, calorie_goal]},
+            'axis': {'range': [None, target_calories]},
             'bar': {'color': "#2ECC71"},
             'threshold': {
                 'line': {'color': "red", 'width': 4},
                 'thickness': 0.75,
-                'value': calorie_goal
+                'value': target_calories
             }
         }
     ))
@@ -196,12 +249,12 @@ with col2:
         domain={'x': [0, 1], 'y': [0, 1]},
         title={'text': "Protein (g)"},
         gauge={
-            'axis': {'range': [None, protein_goal]},
+            'axis': {'range': [None, protein_target]},
             'bar': {'color': "#3498DB"},
             'threshold': {
                 'line': {'color': "red", 'width': 4},
                 'thickness': 0.75,
-                'value': protein_goal
+                'value': protein_target
             }
         }
     ))
@@ -214,12 +267,12 @@ with col3:
         domain={'x': [0, 1], 'y': [0, 1]},
         title={'text': "Fat (g)"},
         gauge={
-            'axis': {'range': [None, fat_goal]},
+            'axis': {'range': [None, fat_target]},
             'bar': {'color': "#E74C3C"},
             'threshold': {
                 'line': {'color': "red", 'width': 4},
                 'thickness': 0.75,
-                'value': fat_goal
+                'value': fat_target
             }
         }
     ))
@@ -232,12 +285,12 @@ with col4:
         domain={'x': [0, 1], 'y': [0, 1]},
         title={'text': "Carbs (g)"},
         gauge={
-            'axis': {'range': [None, carb_goal]},
+            'axis': {'range': [None, carb_target]},
             'bar': {'color': "#F1C40F"},
             'threshold': {
                 'line': {'color': "red", 'width': 4},
                 'thickness': 0.75,
-                'value': carb_goal
+                'value': carb_target
             }
         }
     ))

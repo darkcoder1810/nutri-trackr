@@ -2,9 +2,29 @@ import pandas as pd
 from sheets_db import get_all_foods, add_food
 import streamlit as st
 
-def calculate_maintenance_calories(weight_kg):
-    """Calculate maintenance calories based on weight."""
-    return weight_kg * 32
+def calculate_calories(weight_kg: float, mode: str = 'maintenance') -> float:
+    """Calculate calories based on weight and selected mode."""
+    maintenance = weight_kg * 32  # Base calculation
+
+    if mode == 'bulk':
+        return maintenance * 1.15  # 15% surplus
+    elif mode == 'deficit':
+        return maintenance * 0.85  # 15% deficit
+    return maintenance  # maintenance calories
+
+def calculate_macros(target_calories: float, protein_per_kg: float, fat_percent: float, weight_kg: float) -> tuple:
+    """Calculate macros based on target calories and custom ratios."""
+    # Calculate protein based on weight
+    protein = weight_kg * protein_per_kg
+
+    # Calculate fat based on percentage of total calories
+    fat = (target_calories * fat_percent) / 9
+
+    # Calculate remaining calories for carbs
+    remaining_calories = target_calories - (protein * 4) - (fat * 9)
+    carbs = remaining_calories / 4
+
+    return protein, fat, carbs
 
 def calculate_calories_from_macros(protein: float, fat: float, carbs: float) -> float:
     """Calculate calories from macronutrients using the 4-4-9 rule."""
@@ -16,7 +36,6 @@ def load_food_database():
     try:
         df = get_all_foods()
         if df.empty:
-            st.warning("No food items found in the database.")
             return pd.DataFrame(columns=[
                 'Food Name', 'Calories', 'Protein', 'Fat', 'Carbs',
                 'Weight', 'Basis', 'Category', 'Fibre', 'Avg Weight', 'Source'
@@ -49,7 +68,6 @@ def load_food_database():
         missing_columns = set(required_columns) - set(df.columns)
 
         if missing_columns:
-            st.error(f"Missing required columns in sheet: {', '.join(missing_columns)}")
             return pd.DataFrame(columns=required_columns)
 
         # Convert numeric columns
@@ -93,9 +111,6 @@ def save_food_to_database(food_data: dict):
         add_food(food_data)
         st.cache_data.clear()  # Clear cache to reload updated data
         return True
-    except ValueError as ve:
-        st.warning(str(ve))
-        return False
     except Exception as e:
         st.error(f"Error saving food to database: {str(e)}")
         return False
