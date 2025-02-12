@@ -133,9 +133,9 @@ with st.expander("Add New Food"):
         if new_food_name and food_exists_in_database(new_food_name):
             st.warning(f"'{new_food_name}' already exists in the database")
 
-        new_food_protein = st.number_input("Protein", min_value=0.0, max_value=100.0, value=0.0, step=0.1, key='new_food_protein')
-        new_food_fat = st.number_input("Fat", min_value=0.0, max_value=100.0, value=0.0, step=0.1, key='new_food_fat')
-        new_food_carbs = st.number_input("Carbs", min_value=0.0, max_value=100.0, value=0.0, step=0.1, key='new_food_carbs')
+        new_food_protein = st.number_input("Protein", min_value=0.0, max_value=100.0, step=0.1, key='new_food_protein')
+        new_food_fat = st.number_input("Fat", min_value=0.0, max_value=100.0, step=0.1, key='new_food_fat')
+        new_food_carbs = st.number_input("Carbs", min_value=0.0, max_value=100.0, step=0.1, key='new_food_carbs')
 
         # Auto-calculate calories with proper formatting
         calories = calculate_calories_from_macros(new_food_protein, new_food_fat, new_food_carbs)
