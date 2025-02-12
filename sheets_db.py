@@ -36,18 +36,16 @@ def save_user_info(user_data):
     try:
         sheet = get_user_sheet()
         headers = sheet.row_values(1)
-        expected_headers = ['user_id', 'weight', 'calorie_mode', 'protein_per_kg', 'fat_percent', 'last_updated']
+        expected_headers = ['mobile', 'weight', 'calorie_mode', 'protein_per_kg', 'fat_percent', 'last_updated']
         
         # Add headers if sheet is empty
         if not any(headers):
             sheet.append_row(expected_headers)
             
-        # Get or create user_id
-        user_id = st.session_state.get('user_id', None)
-        if not user_id:
-            import uuid
-            user_id = str(uuid.uuid4())
-            st.session_state['user_id'] = user_id
+        # Get mobile number as user_id
+        mobile = user_data.get('mobile')
+        if not mobile:
+            raise ValueError("Mobile number is required")
             
         # Find existing user row
         all_rows = sheet.get_all_records()
