@@ -56,14 +56,8 @@ st.title("🥗 Calorie & Macro Tracker")
 # Sidebar for user info and goals
 with st.sidebar:
     st.header("User Information")
-    weight = st.number_input(
-        "Weight (kg)",
-        min_value=30.0,
-        max_value=200.0,
-        step=0.1,
-        key='weight_input'
-    )
-    st.session_state.user_info['weight'] = weight
+    weight = st.session_state.user_info.get('weight', 70.0)
+    st.write(f"Weight: {weight} kg")
 
     # Calorie mode selection
     st.header("Calorie Mode")
