@@ -48,7 +48,6 @@ with st.sidebar:
         "Weight (kg)",
         min_value=30.0,
         max_value=200.0,
-        value=st.session_state.user_info['weight'],
         step=0.1,
         key='weight_input'
     )
@@ -220,7 +219,6 @@ for meal_type in meal_types:
                 f"Portion ({portion_unit})",
                 min_value=0.0,
                 max_value=1000.0,
-                value=100.0 if basis != 'p' else 1.0,
                 step=1.0 if basis == 'p' else 10.0,
                 key=f"portion_{meal_type}"
             )
