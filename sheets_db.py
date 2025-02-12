@@ -51,14 +51,14 @@ def save_user_info(user_data):
         all_rows = sheet.get_all_records()
         user_row = None
         for idx, row in enumerate(all_rows):
-            if str(row.get('user_id', '')).strip() == str(user_id).strip():
+            if str(row.get('mobile', '')).strip() == str(mobile).strip():
                 user_row = idx + 2  # +2 for header and 1-based index
                 break
             
         # Prepare row data
         from datetime import datetime
         row_data = [
-            user_id,
+            mobile,
             user_data['weight'],
             user_data['calorie_mode'],
             user_data['protein_per_kg'],
@@ -83,13 +83,13 @@ def load_user_info():
     """Load user information from the sheet."""
     try:
         sheet = get_user_sheet()
-        user_id = st.session_state.get('user_id', None)
-        if not user_id:
+        mobile = st.session_state.get('mobile', None)
+        if not mobile:
             return None
             
         user_data_rows = sheet.get_all_records()
         # Filter rows for current user and sort by last_updated
-        user_rows = [row for row in user_data_rows if str(row.get('user_id', '')).strip() == str(user_id).strip()]
+        user_rows = [row for row in user_data_rows if str(row.get('mobile', '')).strip() == str(mobile).strip()]
         if not user_rows:
             return None
             
