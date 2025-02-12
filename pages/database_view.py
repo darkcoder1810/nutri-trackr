@@ -66,7 +66,7 @@ if not food_db.empty:
 # Display the table with delete buttons
 if not filtered_db.empty:
     # Create two columns - one for the dataframe and one for delete buttons
-    col1, col2 = st.columns([9, 1])
+    col1, col2 = st.columns([15, 1])
 
     with col1:
         st.dataframe(
@@ -82,18 +82,28 @@ if not filtered_db.empty:
         )
 
     with col2:
+        # Custom CSS for delete buttons
         st.markdown("""
         <style>
         .stButton>button {
-            padding: 0rem 1rem;
-            font-size: 0.8rem;
-            height: 1.5rem;
-            margin: 0.15rem 0;
+            padding: 0.1rem 0.5rem;
+            font-size: 0.7rem;
+            height: 1.6rem;
+            margin: 0.25rem 0;
+            min-height: 1.6rem;
+            line-height: 1;
+        }
+        div[data-testid="column"] {
+            padding: 0;
+            margin-top: 3.7rem;  /* Adjust this value to align with the first row */
         }
         </style>
         """, unsafe_allow_html=True)
 
-        st.write("Delete")
+        # Add a bit of spacing to align with table header
+        st.write("")
+
+        # Delete buttons
         for idx, row in filtered_db.iterrows():
             if st.button("🗑️", key=f"delete_{idx}", help=f"Delete {row['Food Name']}", use_container_width=True):
                 if delete_food(row['Food Name']):
