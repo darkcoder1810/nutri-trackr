@@ -95,12 +95,13 @@ if not filtered_db.empty:
         }
         div[data-testid="column"] {
             padding: 0;
-            margin-top: 3.7rem;  /* Adjust this value to align with the first row */
+            margin-top: 2.8rem;  /* Adjusted to better align with table rows */
         }
         </style>
         """, unsafe_allow_html=True)
 
-        # Add a bit of spacing to align with table header
+        # Add spacing to align with the first row
+        st.write("")
         st.write("")
 
         # Delete buttons

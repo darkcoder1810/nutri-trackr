@@ -46,7 +46,6 @@ def get_sheet():
     """Get the existing food database sheet."""
     try:
         client = get_sheets_client()
-
         try:
             sheet = client.open("DB's Food Database").sheet1
             # Test sheet access
@@ -99,7 +98,6 @@ def delete_food(food_name: str) -> bool:
             # Add 2 to account for 1-based indexing and header row
             row_to_delete = found_idx + 2
             sheet.delete_rows(row_to_delete)
-            st.success(f"Successfully deleted {food_name} from database")
             return True
         else:
             st.error(f"Food item '{food_name}' not found in database")
@@ -116,17 +114,13 @@ def get_all_foods():
         # Get headers first to validate structure
         headers = sheet.row_values(1)
         if not headers:
-            st.warning("Sheet appears to be empty. Please check if data exists.")
             return pd.DataFrame()
 
         data = sheet.get_all_records()
         if not data:
-            st.warning("No data found in the sheet (only headers present)")
             return pd.DataFrame(columns=headers)
 
-        df = pd.DataFrame(data)
-        st.success(f"Successfully loaded {len(df)} food items from database")
-        return df
+        return pd.DataFrame(data)
     except Exception as e:
         st.error(f"Error loading foods from sheet: {str(e)}")
         return pd.DataFrame()
@@ -177,7 +171,6 @@ def add_food(food_data):
             row.append(value if value is not None else '')
 
         sheet.append_row(row)
-        st.success(f"Successfully added {food_data['Food Name']} to database")
         return True
 
     except Exception as e:
