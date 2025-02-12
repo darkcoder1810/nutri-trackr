@@ -35,31 +35,27 @@ def save_user_info(user_data):
     """Save user information to the sheet."""
     try:
         sheet = get_user_sheet()
-        # Check if headers exist and are correct
         headers = sheet.row_values(1)
         expected_headers = ['user_id', 'weight', 'calorie_mode', 'protein_per_kg', 'fat_percent', 'last_updated']
         
-        # Only add headers if the first row is completely empty
+        # Add headers if sheet is empty
         if not any(headers):
             sheet.append_row(expected_headers)
-            headers = expected_headers
             
-        # Get user's row if exists
+        # Get or create user_id
         user_id = st.session_state.get('user_id', None)
         if not user_id:
             import uuid
             user_id = str(uuid.uuid4())
             st.session_state['user_id'] = user_id
             
+        # Find existing user row
+        all_rows = sheet.get_all_records()
         user_row = None
-        try:
-            user_data_rows = sheet.get_all_records()
-            for idx, row in enumerate(user_data_rows):
-                if row.get('user_id') == user_id:
-                    user_row = idx + 2  # +2 for 1-based index and header row
-                    break
-        except:
-            pass
+        for idx, row in enumerate(all_rows):
+            if str(row.get('user_id', '')).strip() == str(user_id).strip():
+                user_row = idx + 2  # +2 for header and 1-based index
+                break
             
         # Prepare row data
         from datetime import datetime
