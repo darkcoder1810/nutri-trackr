@@ -99,6 +99,16 @@ with st.sidebar:
 
 # Add new food to database
 st.header("Add New Food")
+
+# Check if form needs to be reset
+if 'reset_form' in st.session_state and st.session_state.reset_form:
+    # Remove all form-related session state
+    for key in list(st.session_state.keys()):
+        if key.startswith('new_food_'):
+            del st.session_state[key]
+    # Remove the reset flag
+    del st.session_state.reset_form
+    
 with st.expander("Add New Food"):
     col1, col2, col3 = st.columns(3)
 
@@ -147,13 +157,8 @@ with st.expander("Add New Food"):
             }
             if save_food_to_database(new_food):
                 st.success("Food added successfully!")
-                # Reset the expander state
-                if "Add New Food" in st.session_state:
-                    del st.session_state["Add New Food"]
-                # Remove form fields from session state to reset them
-                keys_to_remove = [key for key in st.session_state.keys() if key.startswith('new_food_')]
-                for key in keys_to_remove:
-                    del st.session_state[key]
+                # Set a flag to indicate form should be reset
+                st.session_state.reset_form = True
                 # Reload the food database and reset the form
                 st.cache_data.clear()
                 st.rerun()
