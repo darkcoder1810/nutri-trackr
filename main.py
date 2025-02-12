@@ -151,6 +151,9 @@ with st.expander("Add New Food"):
                 for key in list(st.session_state.keys()):
                     if key.startswith('new_food_'):
                         del st.session_state[key]
+                # Reset the expander state
+                if "Add New Food" in st.session_state:
+                    del st.session_state["Add New Food"]
                 # Reload the food database and reset the form
                 st.cache_data.clear()
                 st.rerun()
