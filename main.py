@@ -150,7 +150,10 @@ with st.expander("Add New Food"):
                 # Reset form by clearing the session state for all form fields
                 for key in list(st.session_state.keys()):
                     if key.startswith('new_food_'):
-                        del st.session_state[key]
+                        if isinstance(st.session_state[key], str):
+                            st.session_state[key] = ""
+                        else:
+                            st.session_state[key] = 0.0
                 # Reset the expander state
                 if "Add New Food" in st.session_state:
                     del st.session_state["Add New Food"]
