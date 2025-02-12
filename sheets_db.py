@@ -90,15 +90,19 @@ def load_user_info():
             return None
             
         user_data_rows = sheet.get_all_records()
-        for row in user_data_rows:
-            if row.get('user_id') == user_id:
-                return {
-                    'weight': float(row.get('weight', 70.0)),
-                    'calorie_mode': row.get('calorie_mode', 'maintenance'),
-                    'protein_per_kg': float(row.get('protein_per_kg', 2.0)),
-                    'fat_percent': float(row.get('fat_percent', 0.25))
-                }
-        return None
+        # Filter rows for current user and sort by last_updated
+        user_rows = [row for row in user_data_rows if str(row.get('user_id', '')).strip() == str(user_id).strip()]
+        if not user_rows:
+            return None
+            
+        # Sort by last_updated and get the most recent entry
+        latest_row = sorted(user_rows, key=lambda x: x.get('last_updated', ''), reverse=True)[0]
+        return {
+            'weight': float(latest_row.get('weight', 70.0)),
+            'calorie_mode': latest_row.get('calorie_mode', 'maintenance'),
+            'protein_per_kg': float(latest_row.get('protein_per_kg', 2.0)),
+            'fat_percent': float(latest_row.get('fat_percent', 0.25))
+        }
     except Exception as e:
         st.error(f"Error loading user data: {str(e)}")
         return None
