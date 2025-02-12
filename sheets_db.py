@@ -68,21 +68,44 @@ def delete_food(food_name: str) -> bool:
     """Delete a food item from the sheet."""
     try:
         sheet = get_sheet()
-        # Get all food names
-        food_names = sheet.col_values(1)[1:]  # Skip header and get food names
+        # Get all values including headers
+        all_values = sheet.get_all_values()
+        if not all_values:
+            st.error("Sheet appears to be empty")
+            return False
 
-        # Normalize food names for comparison (strip whitespace and convert to lowercase)
-        food_name = food_name.strip()
-        normalized_food_names = [name.strip().lower() for name in food_names]
-        normalized_search = food_name.lower()
+        # Get header and data rows
+        headers = all_values[0]
+        data_rows = all_values[1:]
 
+        # Find the food name column index (usually 0, but let's be sure)
         try:
-            # Find the row index (add 2 because: +1 for header, +1 for 1-based index)
-            row_idx = normalized_food_names.index(normalized_search) + 2
-            sheet.delete_rows(row_idx)
+            food_name_col = headers.index('Food Name')
+        except ValueError:
+            st.error("Could not find 'Food Name' column in sheet")
+            return False
+
+        # Search for the food item
+        target_name = food_name.strip().lower()
+        found_idx = None
+
+        # Debug logging
+        st.write(f"Searching for food item: '{target_name}'")
+        st.write(f"Available food items: {[row[food_name_col].strip().lower() for row in data_rows]}")
+
+        for idx, row in enumerate(data_rows):
+            current_food = row[food_name_col].strip().lower()
+            if current_food == target_name:
+                found_idx = idx
+                break
+
+        if found_idx is not None:
+            # Add 2 to account for 1-based indexing and header row
+            row_to_delete = found_idx + 2
+            sheet.delete_rows(row_to_delete)
             st.success(f"Successfully deleted {food_name} from database")
             return True
-        except ValueError:
+        else:
             st.error(f"Food item '{food_name}' not found in database")
             return False
 
