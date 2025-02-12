@@ -88,20 +88,19 @@ if not filtered_db.empty:
         .stButton>button {
             padding: 0.1rem 0.5rem;
             font-size: 0.7rem;
-            height: 1.6rem;
-            margin: 0.25rem 0;
-            min-height: 1.6rem;
+            height: 1.5rem;
+            margin: 0.22rem 0;
+            min-height: 1.5rem;
             line-height: 1;
         }
         div[data-testid="column"] {
             padding: 0;
-            margin-top: 2.8rem;  /* Adjusted to better align with table rows */
+            margin-top: 2.65rem;  /* Fine-tuned alignment with table rows */
         }
         </style>
         """, unsafe_allow_html=True)
 
-        # Add spacing to align with the first row
-        st.write("")
+        # Add spacing to align with table header
         st.write("")
 
         # Delete buttons

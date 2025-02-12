@@ -24,8 +24,6 @@ if 'daily_log' not in st.session_state:
         'snacks': [],
         'dinner': []
     }
-if 'form_submitted' not in st.session_state:
-    st.session_state.form_submitted = False
 
 # Load food database
 food_db = load_food_database()
@@ -50,7 +48,7 @@ with st.sidebar:
 
 # Add new food to database
 st.header("Add New Food")
-with st.form(key='add_food_form'):
+with st.expander("Add New Food"):
     # Food name with instant search
     new_food_name = st.text_input("Food Name")
     if new_food_name and food_exists_in_database(new_food_name):
@@ -77,27 +75,25 @@ with st.form(key='add_food_form'):
         new_food_avg_weight = st.text_input("Average Weight (optional)")
         new_food_source = st.text_input("Source (optional)")
 
-    submit_button = st.form_submit_button("Add to Database")
-    if submit_button and new_food_name and not food_exists_in_database(new_food_name):
-        new_food = {
-            'Food Name': new_food_name,
-            'Protein': new_food_protein,
-            'Fat': new_food_fat,
-            'Carbs': new_food_carbs,
-            'Calories': calories,
-            'Weight': new_food_weight,
-            'Basis': new_food_basis,
-            'Category': new_food_category,
-            'Fibre': new_food_fibre,
-            'Avg Weight': new_food_avg_weight,
-            'Source': new_food_source
-        }
-        if save_food_to_database(new_food):
-            st.success("Food added successfully!")
-            st.session_state.form_submitted = True
-            # Reload the food database
-            food_db = load_food_database()
-            st.rerun()
+    if st.button("Add to Database"):
+        if new_food_name and not food_exists_in_database(new_food_name):
+            new_food = {
+                'Food Name': new_food_name,
+                'Protein': new_food_protein,
+                'Fat': new_food_fat,
+                'Carbs': new_food_carbs,
+                'Calories': calories,
+                'Weight': new_food_weight,
+                'Basis': new_food_basis,
+                'Category': new_food_category,
+                'Fibre': new_food_fibre,
+                'Avg Weight': new_food_avg_weight,
+                'Source': new_food_source
+            }
+            if save_food_to_database(new_food):
+                st.success("Food added successfully!")
+                st.cache_data.clear()  # Clear cache to reload data
+                st.rerun()  # Rerun the app to reset form fields
 
 # Food logging section
 st.header("Log Your Meals")
