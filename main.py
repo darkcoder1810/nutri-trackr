@@ -100,6 +100,13 @@ with st.sidebar:
 # Add new food to database
 st.header("Add New Food")
 
+# Check for form reset
+if 'reset_form' in st.session_state and st.session_state['reset_form']:
+    for key in list(st.session_state.keys()):
+        if key.startswith('new_food_'):
+            del st.session_state[key]
+    del st.session_state['reset_form']
+
 # Initialize form fields with default values if not in session state
 default_fields = {
     'new_food_name': '',
@@ -166,16 +173,8 @@ with st.expander("Add New Food"):
             }
             if save_food_to_database(new_food):
                 st.success("Food added successfully!")
-                # Reset form fields to default values
-                st.session_state.new_food_name = ''
-                st.session_state.new_food_protein = 0.0
-                st.session_state.new_food_fat = 0.0
-                st.session_state.new_food_carbs = 0.0
-                st.session_state.new_food_fibre = 0.0
-                st.session_state.new_food_basis = 'gm'
-                st.session_state.new_food_category = 'veg'
-                st.session_state.new_food_avg_weight = ''
-                st.session_state.new_food_source = ''
+                # Set reset flag
+                st.session_state['reset_form'] = True
                 # Reload the food database
                 st.cache_data.clear()
                 st.rerun()
