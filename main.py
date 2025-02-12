@@ -69,10 +69,9 @@ if not st.session_state.user_info:
     if not show_user_info_modal():
         st.stop()
 
-# Add update button in sidebar
+# Add link to user info page in sidebar
 with st.sidebar:
-    if st.button("Update User Information"):
-        show_user_info_modal()
+    st.write("[Update User Information](/User_Information)")
 
 # Load food database
 food_db = load_food_database()
