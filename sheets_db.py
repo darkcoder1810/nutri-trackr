@@ -9,16 +9,24 @@ def get_user_sheet():
     """Get the user data sheet."""
     try:
         client = get_sheets_client()
-        try:
-            spreadsheet = client.open("DB's Food Database")
-            try:
-                return spreadsheet.worksheet('Users')
-            except:
-                # Create Users sheet if it doesn't exist
-                return spreadsheet.add_worksheet('Users', 1, 6)
-        except Exception as e:
-            st.error(f"Error accessing spreadsheet: {str(e)}")
-            raise
+        spreadsheet = client.open("DB's Food Database")
+        
+        # Get all worksheets
+        worksheets = spreadsheet.worksheets()
+        users_sheet = None
+        
+        # Look for existing Users sheet
+        for worksheet in worksheets:
+            if worksheet.title == 'Users':
+                users_sheet = worksheet
+                break
+                
+        # If Users sheet doesn't exist, create it
+        if not users_sheet:
+            users_sheet = spreadsheet.add_worksheet('Users', 1, 6)
+            
+        return users_sheet
+            
     except Exception as e:
         st.error(f"Error getting user sheet: {str(e)}")
         raise
@@ -27,11 +35,14 @@ def save_user_info(user_data):
     """Save user information to the sheet."""
     try:
         sheet = get_user_sheet()
-        # Check if headers exist
+        # Check if headers exist and are correct
         headers = sheet.row_values(1)
-        if not headers:
-            headers = ['user_id', 'weight', 'calorie_mode', 'protein_per_kg', 'fat_percent', 'last_updated']
-            sheet.append_row(headers)
+        expected_headers = ['user_id', 'weight', 'calorie_mode', 'protein_per_kg', 'fat_percent', 'last_updated']
+        
+        # Only add headers if the first row is completely empty
+        if not any(headers):
+            sheet.append_row(expected_headers)
+            headers = expected_headers
             
         # Get user's row if exists
         user_id = st.session_state.get('user_id', None)
