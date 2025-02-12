@@ -5,6 +5,97 @@ import os
 import pandas as pd
 import streamlit as st
 
+def get_user_sheet():
+    """Get the user data sheet."""
+    try:
+        client = get_sheets_client()
+        try:
+            spreadsheet = client.open("DB's Food Database")
+            try:
+                return spreadsheet.worksheet('Users')
+            except:
+                # Create Users sheet if it doesn't exist
+                return spreadsheet.add_worksheet('Users', 1, 6)
+        except Exception as e:
+            st.error(f"Error accessing spreadsheet: {str(e)}")
+            raise
+    except Exception as e:
+        st.error(f"Error getting user sheet: {str(e)}")
+        raise
+
+def save_user_info(user_data):
+    """Save user information to the sheet."""
+    try:
+        sheet = get_user_sheet()
+        # Check if headers exist
+        headers = sheet.row_values(1)
+        if not headers:
+            headers = ['user_id', 'weight', 'calorie_mode', 'protein_per_kg', 'fat_percent', 'last_updated']
+            sheet.append_row(headers)
+            
+        # Get user's row if exists
+        user_id = st.session_state.get('user_id', None)
+        if not user_id:
+            import uuid
+            user_id = str(uuid.uuid4())
+            st.session_state['user_id'] = user_id
+            
+        user_row = None
+        try:
+            user_data_rows = sheet.get_all_records()
+            for idx, row in enumerate(user_data_rows):
+                if row.get('user_id') == user_id:
+                    user_row = idx + 2  # +2 for 1-based index and header row
+                    break
+        except:
+            pass
+            
+        # Prepare row data
+        from datetime import datetime
+        row_data = [
+            user_id,
+            user_data['weight'],
+            user_data['calorie_mode'],
+            user_data['protein_per_kg'],
+            user_data['fat_percent'],
+            datetime.now().isoformat()
+        ]
+        
+        if user_row:
+            # Update existing row
+            for i, value in enumerate(row_data):
+                sheet.update_cell(user_row, i + 1, value)
+        else:
+            # Add new row
+            sheet.append_row(row_data)
+            
+        return True
+    except Exception as e:
+        st.error(f"Error saving user data: {str(e)}")
+        return False
+
+def load_user_info():
+    """Load user information from the sheet."""
+    try:
+        sheet = get_user_sheet()
+        user_id = st.session_state.get('user_id', None)
+        if not user_id:
+            return None
+            
+        user_data_rows = sheet.get_all_records()
+        for row in user_data_rows:
+            if row.get('user_id') == user_id:
+                return {
+                    'weight': float(row.get('weight', 70.0)),
+                    'calorie_mode': row.get('calorie_mode', 'maintenance'),
+                    'protein_per_kg': float(row.get('protein_per_kg', 2.0)),
+                    'fat_percent': float(row.get('fat_percent', 0.25))
+                }
+        return None
+    except Exception as e:
+        st.error(f"Error loading user data: {str(e)}")
+        return None
+
 def get_sheets_client():
     """Initialize and return Google Sheets client."""
     try:

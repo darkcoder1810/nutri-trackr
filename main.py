@@ -26,14 +26,22 @@ if 'daily_log' not in st.session_state:
         'dinner': []
     }
 
-# Initialize user information in session state
+# Load or initialize user information
+from sheets_db import load_user_info, save_user_info
+
 if 'user_info' not in st.session_state:
-    st.session_state.user_info = {
-        'weight': 70.0,
-        'calorie_mode': 'maintenance',
-        'protein_per_kg': 2.0,
-        'fat_percent': 0.25
-    }
+    # Try to load from sheet
+    loaded_user_info = load_user_info()
+    if loaded_user_info:
+        st.session_state.user_info = loaded_user_info
+    else:
+        # Set defaults if no saved data
+        st.session_state.user_info = {
+            'weight': 70.0,
+            'calorie_mode': 'maintenance',
+            'protein_per_kg': 2.0,
+            'fat_percent': 0.25
+        }
 
 # Load food database
 food_db = load_food_database()
@@ -79,6 +87,9 @@ with st.sidebar:
         5
     ) / 100
     st.session_state.user_info['fat_percent'] = fat_percent
+    
+    # Save user info whenever it changes
+    save_user_info(st.session_state.user_info)
 
     # Calculate target calories based on mode
     target_calories = calculate_calories(weight, calorie_mode)
