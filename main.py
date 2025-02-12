@@ -100,15 +100,24 @@ with st.sidebar:
 # Add new food to database
 st.header("Add New Food")
 
-# Check if form needs to be reset
-if 'reset_form' in st.session_state and st.session_state.reset_form:
-    # Remove all form-related session state
-    for key in list(st.session_state.keys()):
-        if key.startswith('new_food_'):
-            del st.session_state[key]
-    # Remove the reset flag
-    del st.session_state.reset_form
-    
+# Initialize form fields with default values if not in session state
+default_fields = {
+    'new_food_name': '',
+    'new_food_protein': 0.0,
+    'new_food_fat': 0.0,
+    'new_food_carbs': 0.0,
+    'new_food_weight': 100.0,
+    'new_food_basis': 'gm',
+    'new_food_category': 'veg',
+    'new_food_fibre': 0.0,
+    'new_food_avg_weight': '',
+    'new_food_source': ''
+}
+
+for field, default_value in default_fields.items():
+    if field not in st.session_state:
+        st.session_state[field] = default_value
+
 with st.expander("Add New Food"):
     col1, col2, col3 = st.columns(3)
 
@@ -157,16 +166,17 @@ with st.expander("Add New Food"):
             }
             if save_food_to_database(new_food):
                 st.success("Food added successfully!")
-                # Remove form fields from session state to reset them
-                keys_to_remove = [
-                    'new_food_name', 'new_food_protein', 'new_food_fat',
-                    'new_food_carbs', 'new_food_fibre', 'new_food_basis',
-                    'new_food_category', 'new_food_avg_weight', 'new_food_source'
-                ]
-                for key in keys_to_remove:
-                    if key in st.session_state:
-                        del st.session_state[key]
-                # Reload the food database and reset the form
+                # Reset form fields to default values
+                st.session_state.new_food_name = ''
+                st.session_state.new_food_protein = 0.0
+                st.session_state.new_food_fat = 0.0
+                st.session_state.new_food_carbs = 0.0
+                st.session_state.new_food_fibre = 0.0
+                st.session_state.new_food_basis = 'gm'
+                st.session_state.new_food_category = 'veg'
+                st.session_state.new_food_avg_weight = ''
+                st.session_state.new_food_source = ''
+                # Reload the food database
                 st.cache_data.clear()
                 st.rerun()
 
