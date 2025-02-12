@@ -147,16 +147,13 @@ with st.expander("Add New Food"):
             }
             if save_food_to_database(new_food):
                 st.success("Food added successfully!")
-                # Reset form by clearing the session state for all form fields
-                for key in list(st.session_state.keys()):
-                    if key.startswith('new_food_'):
-                        if isinstance(st.session_state[key], str):
-                            st.session_state[key] = ""
-                        else:
-                            st.session_state[key] = 0.0
                 # Reset the expander state
                 if "Add New Food" in st.session_state:
                     del st.session_state["Add New Food"]
+                # Remove form fields from session state to reset them
+                keys_to_remove = [key for key in st.session_state.keys() if key.startswith('new_food_')]
+                for key in keys_to_remove:
+                    del st.session_state[key]
                 # Reload the food database and reset the form
                 st.cache_data.clear()
                 st.rerun()
