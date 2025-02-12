@@ -111,9 +111,14 @@ with st.expander("Add New Food"):
         new_food_fat = st.number_input("Fat", min_value=0.0, max_value=100.0, step=0.1, key='new_food_fat')
         new_food_carbs = st.number_input("Carbs", min_value=0.0, max_value=100.0, step=0.1, key='new_food_carbs')
 
-        # Auto-calculate calories
+        # Auto-calculate calories with proper formatting
         calories = calculate_calories_from_macros(new_food_protein, new_food_fat, new_food_carbs)
-        st.metric("Calculated Calories", f"{calories:.1f} kcal")
+        st.metric(
+            "Calculated Calories",
+            f"{calories:.1f} kcal",
+            delta=None,
+            delta_color="normal"
+        )
 
     with col2:
         new_food_weight = st.number_input("Weight", min_value=0.1, max_value=1000.0, value=100.0, step=0.1, key='new_food_weight')
@@ -143,10 +148,11 @@ with st.expander("Add New Food"):
             if save_food_to_database(new_food):
                 st.success("Food added successfully!")
                 # Reset form by clearing the session state for all form fields
-                for key in st.session_state.keys():
+                for key in list(st.session_state.keys()):
                     if key.startswith('new_food_'):
                         del st.session_state[key]
-                st.rerun()
+                # Force a rerun to reset the form
+                st.experimental_rerun()
 
 # Food logging section
 st.header("Log Your Meals")

@@ -2,9 +2,10 @@ import pandas as pd
 from sheets_db import get_all_foods, add_food
 import streamlit as st
 
+
 def calculate_calories(weight_kg: float, mode: str = 'maintenance') -> float:
     """Calculate calories based on weight and selected mode."""
-    maintenance = weight_kg * 32  # Base calculation
+    maintenance = weight_kg * 28.6  # Base calculation
 
     if mode == 'bulk':
         return maintenance * 1.15  # 15% surplus
@@ -12,7 +13,9 @@ def calculate_calories(weight_kg: float, mode: str = 'maintenance') -> float:
         return maintenance * 0.85  # 15% deficit
     return maintenance  # maintenance calories
 
-def calculate_macros(target_calories: float, protein_per_kg: float, fat_percent: float, weight_kg: float) -> tuple:
+
+def calculate_macros(target_calories: float, protein_per_kg: float,
+                     fat_percent: float, weight_kg: float) -> tuple:
     """Calculate macros based on target calories and custom ratios."""
     # Calculate protein based on weight
     protein = weight_kg * protein_per_kg
@@ -26,9 +29,12 @@ def calculate_macros(target_calories: float, protein_per_kg: float, fat_percent:
 
     return protein, fat, carbs
 
-def calculate_calories_from_macros(protein: float, fat: float, carbs: float) -> float:
+
+def calculate_calories_from_macros(protein: float, fat: float,
+                                   carbs: float) -> float:
     """Calculate calories from macronutrients using the 4-4-9 rule."""
     return (protein * 4) + (fat * 9) + (carbs * 4)
+
 
 @st.cache_data(ttl=300)  # Cache for 5 minutes
 def load_food_database():
@@ -37,8 +43,8 @@ def load_food_database():
         df = get_all_foods()
         if df.empty:
             return pd.DataFrame(columns=[
-                'Food Name', 'Calories', 'Protein', 'Fat', 'Carbs',
-                'Weight', 'Basis', 'Category', 'Fibre', 'Avg Weight', 'Source'
+                'Food Name', 'Calories', 'Protein', 'Fat', 'Carbs', 'Weight',
+                'Basis', 'Category', 'Fibre', 'Avg Weight', 'Source'
             ])
 
         # Map column names to standardized format
@@ -64,7 +70,10 @@ def load_food_database():
                     break
 
         # Ensure all required columns exist
-        required_columns = ['Food Name', 'Calories', 'Protein', 'Fat', 'Carbs', 'Weight', 'Basis', 'Category']
+        required_columns = [
+            'Food Name', 'Calories', 'Protein', 'Fat', 'Carbs', 'Weight',
+            'Basis', 'Category'
+        ]
         missing_columns = set(required_columns) - set(df.columns)
 
         if missing_columns:
@@ -81,9 +90,10 @@ def load_food_database():
     except Exception as e:
         st.error(f"Error loading food database: {str(e)}")
         return pd.DataFrame(columns=[
-            'Food Name', 'Calories', 'Protein', 'Fat', 'Carbs',
-            'Weight', 'Basis', 'Category', 'Fibre', 'Avg Weight', 'Source'
+            'Food Name', 'Calories', 'Protein', 'Fat', 'Carbs', 'Weight',
+            'Basis', 'Category', 'Fibre', 'Avg Weight', 'Source'
         ])
+
 
 def food_exists_in_database(food_name: str) -> bool:
     """Check if a food item already exists in the database."""
@@ -91,6 +101,7 @@ def food_exists_in_database(food_name: str) -> bool:
     if 'Food Name' not in df.columns:
         return False
     return food_name.lower() in df['Food Name'].str.lower().values
+
 
 def save_food_to_database(food_data: dict):
     """Save a new food item to the Google Sheet."""
@@ -100,12 +111,13 @@ def save_food_to_database(food_data: dict):
             food_data['Calories'] = calculate_calories_from_macros(
                 float(food_data.get('Protein', 0)),
                 float(food_data.get('Fat', 0)),
-                float(food_data.get('Carbs', 0))
-            )
+                float(food_data.get('Carbs', 0)))
 
         # Check if food already exists
         if food_exists_in_database(food_data.get('Food Name', '')):
-            st.warning(f"Food item '{food_data.get('Food Name')}' already exists in the database")
+            st.warning(
+                f"Food item '{food_data.get('Food Name')}' already exists in the database"
+            )
             return False
 
         add_food(food_data)
