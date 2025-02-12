@@ -98,7 +98,7 @@ if not filtered_db.empty:
             if st.button("🗑️", key=f"delete_{idx}", help=f"Delete {row['Food Name']}", use_container_width=True):
                 if delete_food(row['Food Name']):
                     st.cache_data.clear()
-                    st.experimental_rerun()
+                    st.rerun()
 
 else:
     st.warning("No data available in the database")

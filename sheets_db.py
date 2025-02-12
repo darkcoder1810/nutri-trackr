@@ -89,10 +89,6 @@ def delete_food(food_name: str) -> bool:
         target_name = food_name.strip().lower()
         found_idx = None
 
-        # Debug logging
-        st.write(f"Searching for food item: '{target_name}'")
-        st.write(f"Available food items: {[row[food_name_col].strip().lower() for row in data_rows]}")
-
         for idx, row in enumerate(data_rows):
             current_food = row[food_name_col].strip().lower()
             if current_food == target_name:
@@ -179,9 +175,6 @@ def add_food(food_data):
                     value = food_data.get('Basis', food_data.get('basis', 'gm'))
 
             row.append(value if value is not None else '')
-
-        # Debug logging
-        st.write(f"Adding row: {list(zip(headers, row))}")
 
         sheet.append_row(row)
         st.success(f"Successfully added {food_data['Food Name']} to database")
