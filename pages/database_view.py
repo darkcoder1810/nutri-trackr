@@ -66,13 +66,13 @@ if not food_db.empty:
 # Display the table with delete buttons
 if not filtered_db.empty:
     # Create two columns - one for the dataframe and one for delete buttons
-    col1, col2 = st.columns([8, 1])
+    col1, col2 = st.columns([9, 1])
 
     with col1:
         st.dataframe(
             filtered_db,
             column_config={
-                "Food Name": "Food Name",
+                "Food Name": st.column_config.TextColumn("Food Name"),
                 "Calories": st.column_config.NumberColumn("Calories (kcal)", format="%.1f"),
                 "Protein": st.column_config.NumberColumn("Protein (g)", format="%.1f"),
                 "Fat": st.column_config.NumberColumn("Fat (g)", format="%.1f"),
@@ -82,12 +82,24 @@ if not filtered_db.empty:
         )
 
     with col2:
-        st.write("Actions")
+        st.markdown("""
+        <style>
+        .stButton>button {
+            padding: 0rem 1rem;
+            font-size: 0.8rem;
+            height: 1.5rem;
+            margin: 0.15rem 0;
+        }
+        </style>
+        """, unsafe_allow_html=True)
+
+        st.write("Delete")
         for idx, row in filtered_db.iterrows():
-            if st.button("🗑️", key=f"delete_{idx}", help=f"Delete {row['Food Name']}"):
+            if st.button("🗑️", key=f"delete_{idx}", help=f"Delete {row['Food Name']}", use_container_width=True):
                 if delete_food(row['Food Name']):
                     st.cache_data.clear()
                     st.experimental_rerun()
+
 else:
     st.warning("No data available in the database")
 

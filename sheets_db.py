@@ -125,11 +125,27 @@ def add_food(food_data):
         # Create a row with values in the correct order based on sheet headers
         row = []
         for header in headers:
-            # Convert header to lowercase for case-insensitive matching
-            header_key = header.lower().replace(' ', '_')
-            # Try to get the value using various possible key formats
-            value = food_data.get(header) or food_data.get(header.lower()) or ''
-            row.append(value)
+            value = None
+            # Try different key formats
+            key_variants = [
+                header,
+                header.lower(),
+                header.replace(' ', '_'),
+                header.lower().replace(' ', '_')
+            ]
+            for key in key_variants:
+                if key in food_data:
+                    value = food_data[key]
+                    break
+
+            # If still no value found, try common aliases
+            if value is None:
+                if header.lower() == 'fat':
+                    value = food_data.get('fat', 0)
+                elif header.lower() == 'category':
+                    value = food_data.get('category', 'veg')
+
+            row.append(value if value is not None else '')
 
         sheet.append_row(row)
         st.success(f"Successfully added {food_data['Food Name']} to database")
