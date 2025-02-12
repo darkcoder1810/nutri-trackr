@@ -18,8 +18,10 @@ st.title("👤 User Information")
 def show_user_info_form():
     with st.form("user_info_form"):
         st.subheader("Personal Information")
+        # Get user info from sheet first
         mobile = st.text_input("Mobile Number", value=st.session_state.user_info.get('mobile', ''))
-        weight = st.number_input("Weight (kg)", min_value=20.0, max_value=200.0, value=float(st.session_state.user_info.get('weight', 70.0)))
+        saved_weight = float(st.session_state.user_info.get('weight', 70.0))
+        weight = st.number_input("Weight (kg)", min_value=20.0, max_value=200.0, value=saved_weight)
         calorie_mode = st.radio("Calorie Mode", ['maintenance', 'bulk', 'deficit'], index=['maintenance', 'bulk', 'deficit'].index(st.session_state.user_info.get('calorie_mode', 'maintenance')))
         
         st.subheader("Macro Settings")
