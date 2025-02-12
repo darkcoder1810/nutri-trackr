@@ -29,19 +29,18 @@ if 'daily_log' not in st.session_state:
 # Load or initialize user information
 from sheets_db import load_user_info, save_user_info
 
-if 'user_info' not in st.session_state:
-    # Try to load from sheet
-    loaded_user_info = load_user_info()
-    if loaded_user_info:
-        st.session_state.user_info = loaded_user_info
-    else:
-        # Set defaults if no saved data
-        st.session_state.user_info = {
-            'weight': 70.0,
-            'calorie_mode': 'maintenance',
-            'protein_per_kg': 2.0,
-            'fat_percent': 0.25
-        }
+# Try to load from sheet
+loaded_user_info = load_user_info()
+if loaded_user_info:
+    st.session_state.user_info = loaded_user_info
+elif 'user_info' not in st.session_state:
+    # Set defaults only if no saved data and no session state
+    st.session_state.user_info = {
+        'weight': 70.0,
+        'calorie_mode': 'maintenance',
+        'protein_per_kg': 2.0,
+        'fat_percent': 0.25
+    }
 
 # Load food database
 food_db = load_food_database()
