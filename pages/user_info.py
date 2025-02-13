@@ -29,16 +29,19 @@ def show_user_info_form():
         fat_percent = st.slider("Fat (% of total calories)", 20, 35, int(float(st.session_state.user_info.get('fat_percent', 0.25)) * 100)) / 100
         
         submitted = st.form_submit_button("Save Information")
-        if submitted and mobile:
-            # Save mobile to session state first
-            st.session_state.mobile = mobile
-            user_data = {
-                'mobile': mobile,
-                'weight': weight,
-                'calorie_mode': calorie_mode,
-                'protein_per_kg': protein_per_kg,
-                'fat_percent': fat_percent
-            }
+        if submitted:
+            if not mobile:
+                st.error("Mobile number is required")
+            else:
+                # Save mobile to session state first
+                st.session_state.mobile = mobile
+                user_data = {
+                    'mobile': str(mobile).strip(),  # Ensure mobile is string and stripped
+                    'weight': weight,
+                    'calorie_mode': calorie_mode,
+                    'protein_per_kg': protein_per_kg,
+                    'fat_percent': fat_percent
+                }
             if save_user_info(user_data):
                 st.session_state.user_info = user_data
                 st.success("Information saved successfully!")
