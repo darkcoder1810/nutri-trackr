@@ -67,6 +67,10 @@ elif st.session_state.mobile_verified:
         with st.sidebar:
             st.header("User Information")
             weight = st.session_state.user_info.get('weight', 70.0)
+            # Update mobile in user_info if not present
+            if 'mobile' not in st.session_state.user_info and 'mobile' in st.session_state:
+                st.session_state.user_info['mobile'] = st.session_state.mobile
+                
             st.write(f"Weight: {weight} kg")
 
             # Calorie mode selection

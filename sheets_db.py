@@ -43,7 +43,7 @@ def save_user_info(user_data):
             sheet.append_row(expected_headers)
 
         # Get mobile number as user_id
-        mobile = user_data.get('mobile')
+        mobile = user_data.get('mobile') or st.session_state.get('mobile')
         if not mobile:
             raise ValueError("Mobile number is required")
 
