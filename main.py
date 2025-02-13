@@ -187,130 +187,74 @@ elif st.session_state.mobile_verified:
         # Display daily totals and progress
         st.header("Daily Progress")
 
-        # Calculate totals
-        total_calories = sum(
-            sum(item['calories'] for item in meal)
-            for meal in st.session_state.daily_log.values())
-        total_protein = sum(
-            sum(item['protein'] for item in meal)
-            for meal in st.session_state.daily_log.values())
-        total_fat = sum(
-            sum(item['fat'] for item in meal)
-            for meal in st.session_state.daily_log.values())
-        total_carbs = sum(
-            sum(item['carbs'] for item in meal)
-            for meal in st.session_state.daily_log.values())
+        # Get today's logs from Google Sheets
+        today_logs = get_daily_logs(st.session_state.mobile)
+        if today_logs:
+            total_calories = sum(log['Calories'] for log in today_logs)
+            total_protein = sum(log['Protein'] for log in today_logs)
+            total_fat = sum(log['Fat'] for log in today_logs)
+            total_carbs = sum(log['Carbs'] for log in today_logs)
+        else:
+            total_calories = total_protein = total_fat = total_carbs = 0
 
-        # Create progress gauges
-        col1, col2, col3, col4 = st.columns(4)
+        # Calculate remaining/excess calories
+        calorie_difference = target_calories - total_calories
+        status_color = "#2ECC71" if calorie_difference >= 0 else "#E74C3C"
+        status_text = f"{abs(calorie_difference):.0f} kcal {'remaining' if calorie_difference >= 0 else 'over'}"
 
-        with col1:
-            fig = go.Figure(
-                go.Indicator(mode="gauge+number",
-                             value=total_calories,
-                             domain={
-                                 'x': [0, 1],
-                                 'y': [0, 1]
-                             },
-                             title={'text': "Calories"},
-                             gauge={
-                                 'axis': {
-                                     'range': [None, target_calories]
-                                 },
-                                 'bar': {
-                                     'color': "#2ECC71"
-                                 },
-                                 'threshold': {
-                                     'line': {
-                                         'color': "red",
-                                         'width': 4
-                                     },
-                                     'thickness': 0.75,
-                                     'value': target_calories
-                                 }
-                             }))
-            st.plotly_chart(fig)
+        # Create consolidated progress chart
+        fig = go.Figure()
 
-        with col2:
-            fig = go.Figure(
-                go.Indicator(mode="gauge+number",
-                             value=total_protein,
-                             domain={
-                                 'x': [0, 1],
-                                 'y': [0, 1]
-                             },
-                             title={'text': "Protein (g)"},
-                             gauge={
-                                 'axis': {
-                                     'range': [None, protein_target]
-                                 },
-                                 'bar': {
-                                     'color': "#3498DB"
-                                 },
-                                 'threshold': {
-                                     'line': {
-                                         'color': "red",
-                                         'width': 4
-                                     },
-                                     'thickness': 0.75,
-                                     'value': protein_target
-                                 }
-                             }))
-            st.plotly_chart(fig)
+        # Add main calorie gauge
+        fig.add_trace(go.Indicator(
+            mode="gauge+number+delta",
+            value=total_calories,
+            domain={'x': [0, 1], 'y': [0, 0.5]},
+            title={'text': f"Daily Calories<br><span style='color: {status_color}'>{status_text}</span>", 'font': {'size': 20}},
+            delta={'reference': target_calories, 'relative': False},
+            gauge={
+                'axis': {'range': [0, target_calories * 1.5]},
+                'bar': {'color': status_color},
+                'threshold': {
+                    'line': {'color': "red", 'width': 2},
+                    'thickness': 0.75,
+                    'value': target_calories
+                }
+            }
+        ))
 
-        with col3:
-            fig = go.Figure(
-                go.Indicator(mode="gauge+number",
-                             value=total_fat,
-                             domain={
-                                 'x': [0, 1],
-                                 'y': [0, 1]
-                             },
-                             title={'text': "Fat (g)"},
-                             gauge={
-                                 'axis': {
-                                     'range': [None, fat_target]
-                                 },
-                                 'bar': {
-                                     'color': "#E74C3C"
-                                 },
-                                 'threshold': {
-                                     'line': {
-                                         'color': "red",
-                                         'width': 4
-                                     },
-                                     'thickness': 0.75,
-                                     'value': fat_target
-                                 }
-                             }))
-            st.plotly_chart(fig)
+        # Add macronutrient indicators
+        fig.add_trace(go.Indicator(
+            mode="number+delta",
+            value=total_protein,
+            title={'text': "Protein (g)"},
+            delta={'reference': protein_target},
+            domain={'x': [0, 0.3], 'y': [0.6, 1]}
+        ))
 
-        with col4:
-            fig = go.Figure(
-                go.Indicator(mode="gauge+number",
-                             value=total_carbs,
-                             domain={
-                                 'x': [0, 1],
-                                 'y': [0, 1]
-                             },
-                             title={'text': "Carbs (g)"},
-                             gauge={
-                                 'axis': {
-                                     'range': [None, carb_target]
-                                 },
-                                 'bar': {
-                                     'color': "#F1C40F"
-                                 },
-                                 'threshold': {
-                                     'line': {
-                                         'color': "red",
-                                         'width': 4
-                                     },
-                                     'thickness': 0.75,
-                                     'value': carb_target
-                                 }
-                             }))
-            st.plotly_chart(fig)
+        fig.add_trace(go.Indicator(
+            mode="number+delta",
+            value=total_fat,
+            title={'text': "Fat (g)"},
+            delta={'reference': fat_target},
+            domain={'x': [0.35, 0.65], 'y': [0.6, 1]}
+        ))
+
+        fig.add_trace(go.Indicator(
+            mode="number+delta",
+            value=total_carbs,
+            title={'text': "Carbs (g)"},
+            delta={'reference': carb_target},
+            domain={'x': [0.7, 1], 'y': [0.6, 1]}
+        ))
+
+        fig.update_layout(
+            height=500,
+            grid={'rows': 2, 'columns': 1, 'pattern': "independent"},
+            template='plotly_dark'
+        )
+
+        st.plotly_chart(fig, use_container_width=True)
 
         # Clear daily log button
         if st.button("Clear Daily Log"):
