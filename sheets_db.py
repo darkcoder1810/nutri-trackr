@@ -279,3 +279,57 @@ def add_food(food_data):
     except Exception as e:
         st.error(f"Error adding food to sheet: {str(e)}")
         raise
+def get_daily_log_sheet():
+    """Get the daily log sheet."""
+    try:
+        client = get_sheets_client()
+        spreadsheet = client.open("DB's Food Database")
+        
+        # Get all worksheets
+        worksheets = spreadsheet.worksheets()
+        log_sheet = None
+        
+        # Look for existing Daily Logs sheet
+        for worksheet in worksheets:
+            if worksheet.title == 'Daily Logs':
+                log_sheet = worksheet
+                break
+                
+        # If Daily Logs sheet doesn't exist, create it with headers
+        if not log_sheet:
+            log_sheet = spreadsheet.add_worksheet('Daily Logs', 1, 11)
+            headers = ['Mobile', 'Timestamp', 'Meal Type', 'Weight', 'Basis', 'Food Name', 
+                      'Category', 'Calories', 'Protein', 'Carbs', 'Fat']
+            log_sheet.append_row(headers)
+            
+        return log_sheet
+    except Exception as e:
+        st.error(f"Error getting daily log sheet: {str(e)}")
+        raise
+
+def save_meal_log(meal_data):
+    """Save meal log to the sheet."""
+    try:
+        sheet = get_daily_log_sheet()
+        
+        # Prepare row data
+        from datetime import datetime
+        row_data = [
+            meal_data['mobile'],
+            datetime.now().isoformat(),
+            meal_data['meal_type'],
+            meal_data['weight'],
+            meal_data['basis'],
+            meal_data['food_name'],
+            meal_data['category'],
+            meal_data['calories'],
+            meal_data['protein'],
+            meal_data['carbs'],
+            meal_data['fat']
+        ]
+        
+        sheet.append_row(row_data)
+        return True
+    except Exception as e:
+        st.error(f"Error saving meal log: {str(e)}")
+        return False

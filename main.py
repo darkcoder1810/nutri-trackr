@@ -119,24 +119,14 @@ elif st.session_state.mobile_verified:
                 col1, col2, col3 = st.columns([2, 1, 1])
 
                 with col1:
-                    # Food selection with search
+                    # Food selection with integrated search
                     if not food_db.empty and 'Food Name' in food_db.columns:
-                        # Add a search box
-                        search_query = st.text_input("Search",
-                                                     key=f"search_{meal_type}")
-
-                        # Filter food options based on search
-                        if search_query:
-                            filtered_options = food_db[
-                                food_db['Food Name'].str.contains(search_query,
-                                                                  case=False)]
-                        else:
-                            filtered_options = food_db
-
                         food_selection = st.selectbox(
                             f"Select food for {meal_type}",
-                            options=filtered_options['Food Name'].tolist(),
-                            key=f"food_select_{meal_type}")
+                            options=food_db['Food Name'].tolist(),
+                            key=f"food_select_{meal_type}",
+                            placeholder="Search for food...",
+                        )
                     else:
                         st.warning("No foods available in database")
                         continue
@@ -173,7 +163,23 @@ elif st.session_state.mobile_verified:
                             'portion': portion,
                             'unit': portion_unit
                         }
+                        # Add to session state
                         st.session_state.daily_log[meal_type].append(logged_item)
+                        
+                        # Save to daily log sheet
+                        meal_log = {
+                            'mobile': st.session_state.mobile,
+                            'meal_type': meal_type,
+                            'weight': portion,
+                            'basis': basis,
+                            'food_name': food_item['Food Name'],
+                            'category': food_item.get('Category', 'N/A'),
+                            'calories': logged_item['calories'],
+                            'protein': logged_item['protein'],
+                            'carbs': logged_item['carbs'],
+                            'fat': logged_item['fat']
+                        }
+                        save_meal_log(meal_log)
 
         # Display daily totals and progress
         st.header("Daily Progress")
