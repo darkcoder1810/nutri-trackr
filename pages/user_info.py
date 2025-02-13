@@ -42,10 +42,10 @@ def show_user_info_form():
                     'protein_per_kg': protein_per_kg,
                     'fat_percent': fat_percent
                 }
-            if save_user_info(user_data):
-                st.session_state.user_info = user_data
-                st.success("Information saved successfully!")
-                return True
+                if save_user_info(user_data):
+                    st.session_state.user_info = user_data
+                    st.success("Information saved successfully!")
+                    return True
             else:
                 st.error("Error saving information")
         elif submitted and not mobile:
