@@ -443,7 +443,7 @@ elif st.session_state.mobile_verified:
 
         # Today's date for filtering
         from datetime import datetime
-        today = datetime.now().strftime('%Y-%m-%d')
+        today = datetime.now().strftime('%d-%m-%Y')
 
         # Get logs for today
         today_logs = get_daily_logs(st.session_state.mobile, today)

@@ -384,9 +384,16 @@ def get_daily_logs(mobile, date=None):
         # Filter by mobile
         logs = [r for r in records if str(r['Mobile']) == str(mobile)]
 
+        # Convert and format timestamps
+        for log in logs:
+            dt = datetime.fromisoformat(log['Timestamp'])
+            log['Date'] = dt.strftime('%d-%m-%Y')
+            log['Time'] = dt.strftime('%H:%M')
+            log['Timestamp'] = dt
+
         # Filter by date if provided
         if date:
-            logs = [r for r in logs if r['Timestamp'].split('T')[0] == date]
+            logs = [r for r in logs if log['Date'] == date]
 
         return sorted(logs, key=lambda x: x['Timestamp'])
     except Exception as e:
