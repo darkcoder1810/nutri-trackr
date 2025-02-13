@@ -10,23 +10,23 @@ def get_user_sheet():
     try:
         client = get_sheets_client()
         spreadsheet = client.open("DB's Food Database")
-        
+
         # Get all worksheets
         worksheets = spreadsheet.worksheets()
         users_sheet = None
-        
+
         # Look for existing Users sheet
         for worksheet in worksheets:
             if worksheet.title == 'Users':
                 users_sheet = worksheet
                 break
-                
+
         # If Users sheet doesn't exist, create it
         if not users_sheet:
             users_sheet = spreadsheet.add_worksheet('Users', 1, 6)
-            
+
         return users_sheet
-            
+
     except Exception as e:
         st.error(f"Error getting user sheet: {str(e)}")
         raise
@@ -37,16 +37,16 @@ def save_user_info(user_data):
         sheet = get_user_sheet()
         headers = sheet.row_values(1)
         expected_headers = ['mobile', 'weight', 'calorie_mode', 'protein_per_kg', 'fat_percent', 'last_updated']
-        
+
         # Add headers if sheet is empty
         if not any(headers):
             sheet.append_row(expected_headers)
-            
+
         # Get mobile number as user_id
         mobile = user_data.get('mobile')
         if not mobile:
             raise ValueError("Mobile number is required")
-            
+
         # Find existing user row
         all_rows = sheet.get_all_records()
         user_row = None
@@ -54,7 +54,7 @@ def save_user_info(user_data):
             if str(row.get('mobile', '')).strip() == str(mobile).strip():
                 user_row = idx + 2  # +2 for header and 1-based index
                 break
-            
+
         # Prepare row data
         from datetime import datetime
         row_data = [
@@ -65,7 +65,7 @@ def save_user_info(user_data):
             user_data['fat_percent'],
             datetime.now().isoformat()
         ]
-        
+
         if user_row:
             # Update existing row
             for i, value in enumerate(row_data):
@@ -73,8 +73,11 @@ def save_user_info(user_data):
         else:
             # Add new row
             sheet.append_row(row_data)
-            
+
         return True
+    except ValueError as e:
+        st.error(f"Error saving user data: {str(e)}")
+        return False
     except Exception as e:
         st.error(f"Error saving user data: {str(e)}")
         return False
@@ -86,13 +89,13 @@ def load_user_info():
         mobile = st.session_state.get('mobile', None)
         if not mobile:
             return None
-            
+
         user_data_rows = sheet.get_all_records()
         # Filter rows for current user and sort by last_updated
         user_rows = [row for row in user_data_rows if str(row.get('mobile', '')).strip() == str(mobile).strip()]
         if not user_rows:
             return None
-            
+
         # Sort by last_updated and get the most recent entry
         latest_row = sorted(user_rows, key=lambda x: x.get('last_updated', ''), reverse=True)[0]
         return {

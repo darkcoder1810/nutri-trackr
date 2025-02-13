@@ -35,8 +35,14 @@ def show_user_info_form():
             else:
                 # Save mobile to session state first
                 st.session_state.mobile = mobile
+                # Validate mobile number
+                mobile = str(mobile).strip()
+                if not mobile:
+                    st.error("Mobile number is required")
+                    return False
+                    
                 user_data = {
-                    'mobile': str(mobile).strip(),  # Ensure mobile is string and stripped
+                    'mobile': mobile,
                     'weight': weight,
                     'calorie_mode': calorie_mode,
                     'protein_per_kg': protein_per_kg,
