@@ -4,7 +4,7 @@ import plotly.graph_objects as go
 from utils import (calculate_calories, calculate_macros, load_food_database,
                    save_food_to_database, calculate_calories_from_macros,
                    food_exists_in_database)
-from sheets_db import load_user_info, save_user_info
+from sheets_db import load_user_info, save_user_info, save_meal_log
 
 # Page configuration
 st.set_page_config(page_title="Calorie Tracker", layout="wide")
