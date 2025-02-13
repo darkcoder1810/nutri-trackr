@@ -4,7 +4,7 @@ import plotly.graph_objects as go
 from utils import (calculate_calories, calculate_macros, load_food_database,
                    save_food_to_database, calculate_calories_from_macros,
                    food_exists_in_database)
-from sheets_db import load_user_info, save_user_info, save_meal_log
+from sheets_db import load_user_info, save_user_info, save_meal_log, get_daily_logs, delete_logs_by_date, get_daily_summaries
 
 # Page configuration
 st.set_page_config(page_title="Calorie Tracker", layout="wide")
@@ -40,13 +40,14 @@ if not st.session_state.mobile_verified:
         else:
             st.session_state.mobile = mobile
             user_data = load_user_info()
-            
+
             if user_data:
                 st.session_state.user_info = user_data
                 st.session_state.mobile_verified = True
                 st.rerun()
             else:
-                st.warning("No existing data found. Please enter your information.")
+                st.warning(
+                    "No existing data found. Please enter your information.")
                 st.switch_page("pages/user_info.py")
 
 # Main application
@@ -70,7 +71,7 @@ elif st.session_state.mobile_verified:
             # Update mobile in user_info if not present
             if 'mobile' not in st.session_state.user_info and 'mobile' in st.session_state:
                 st.session_state.user_info['mobile'] = st.session_state.mobile
-                
+
             st.write(f"Weight: {weight} kg")
 
             # Calorie mode selection
@@ -140,11 +141,12 @@ elif st.session_state.mobile_verified:
                     # Display portion input with dynamic unit
                     portion_unit = 'p' if basis == 'p' else (
                         'ml' if basis == 'ml' else 'gm')
-                    portion = st.number_input(f"Portion ({portion_unit})",
-                                              min_value=0.0,
-                                              max_value=1000.0,
-                                              step=1.0 if basis == 'p' else 10.0,
-                                              key=f"portion_{meal_type}")
+                    portion = st.number_input(
+                        f"Portion ({portion_unit})",
+                        min_value=0.0,
+                        max_value=1000.0,
+                        step=1.0 if basis == 'p' else 10.0,
+                        key=f"portion_{meal_type}")
 
                 with col3:
                     if st.button("Add", key=f"add_{meal_type}"):
@@ -164,8 +166,9 @@ elif st.session_state.mobile_verified:
                             'unit': portion_unit
                         }
                         # Add to session state
-                        st.session_state.daily_log[meal_type].append(logged_item)
-                        
+                        st.session_state.daily_log[meal_type].append(
+                            logged_item)
+
                         # Save to daily log sheet
                         meal_log = {
                             'mobile': st.session_state.mobile,
@@ -356,7 +359,8 @@ elif st.session_state.mobile_verified:
                                               value="",
                                               key='new_food_name')
                 if new_food_name and food_exists_in_database(new_food_name):
-                    st.warning(f"'{new_food_name}' already exists in the database")
+                    st.warning(
+                        f"'{new_food_name}' already exists in the database")
 
                 new_food_protein = st.number_input("Protein",
                                                    min_value=0.0,
@@ -375,9 +379,8 @@ elif st.session_state.mobile_verified:
                                                  key='new_food_carbs')
 
                 # Auto-calculate calories with proper formatting
-                calories = calculate_calories_from_macros(new_food_protein,
-                                                           new_food_fat,
-                                                           new_food_carbs)
+                calories = calculate_calories_from_macros(
+                    new_food_protein, new_food_fat, new_food_carbs)
                 st.metric("Calculated Calories",
                           f"{calories:.1f} kcal",
                           delta=None,
@@ -403,13 +406,14 @@ elif st.session_state.mobile_verified:
                                                  key='new_food_fibre')
 
             with col3:
-                new_food_avg_weight = st.text_input("Average Weight (optional)",
-                                                    key='new_food_avg_weight')
+                new_food_avg_weight = st.text_input(
+                    "Average Weight (optional)", key='new_food_avg_weight')
                 new_food_source = st.text_input("Source (optional)",
                                                 key='new_food_source')
 
             if st.button("Add to Database"):
-                if new_food_name and not food_exists_in_database(new_food_name):
+                if new_food_name and not food_exists_in_database(
+                        new_food_name):
                     new_food = {
                         'Food Name': new_food_name,
                         'Protein': new_food_protein,
@@ -436,29 +440,32 @@ elif st.session_state.mobile_verified:
 
     with tabs[2]:  # Daily Log Tab
         st.header("Daily Log")
-        
+
         # Today's date for filtering
         from datetime import datetime
         today = datetime.now().strftime('%Y-%m-%d')
-        
+
         # Get logs for today
         today_logs = get_daily_logs(st.session_state.mobile, today)
-        
+
         st.subheader("Today's Calorie Intake")
         if today_logs:
             log_df = pd.DataFrame(today_logs)
-            display_cols = ['Timestamp', 'Meal Type', 'Food Name', 'Category', 
-                          'Calories', 'Protein', 'Carbs', 'Fat']
-            
+            display_cols = [
+                'Timestamp', 'Meal Type', 'Food Name', 'Category', 'Calories',
+                'Protein', 'Carbs', 'Fat'
+            ]
+
             # Format timestamp to show only time
-            log_df['Timestamp'] = pd.to_datetime(log_df['Timestamp']).dt.strftime('%H:%M')
-            
+            log_df['Timestamp'] = pd.to_datetime(
+                log_df['Timestamp']).dt.strftime('%H:%M')
+
             st.dataframe(log_df[display_cols], hide_index=True)
         else:
             st.info("No meals logged today")
-            
+
         st.divider()
-        
+
         # Daily Summary View
         st.subheader("Daily Total Calorie Intake Summary")
         summaries = get_daily_summaries(st.session_state.mobile)
@@ -467,25 +474,28 @@ elif st.session_state.mobile_verified:
             st.dataframe(summary_df, hide_index=True)
         else:
             st.info("No meal history available")
-            
+
         st.divider()
-        
+
         # Delete Logs Section
         st.subheader("Clear Daily Logs")
         col1, col2 = st.columns([2, 1])
-        
+
         with col1:
-            delete_date = st.date_input("Select date to clear logs", 
-                                      value=datetime.now().date(),
-                                      key="delete_date")
-        
+            delete_date = st.date_input("Select date to clear logs",
+                                        value=datetime.now().date(),
+                                        key="delete_date")
+
         with col2:
             if st.button("Delete Logs", type="secondary"):
                 if st.session_state.get("confirm_delete") != delete_date:
                     st.session_state.confirm_delete = delete_date
-                    st.warning(f"Are you sure you want to delete all logs for {delete_date}? Click again to confirm.")
+                    st.warning(
+                        f"Are you sure you want to delete all logs for {delete_date}? Click again to confirm."
+                    )
                 else:
-                    if delete_logs_by_date(st.session_state.mobile, str(delete_date)):
+                    if delete_logs_by_date(st.session_state.mobile,
+                                           str(delete_date)):
                         st.success("Logs deleted successfully!")
                         st.session_state.pop("confirm_delete", None)
                         st.rerun()

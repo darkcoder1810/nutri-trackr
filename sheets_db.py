@@ -4,6 +4,12 @@ from oauth2client.service_account import ServiceAccountCredentials
 import os
 import pandas as pd
 import streamlit as st
+from datetime import datetime
+import pytz
+
+# Prepare row data
+ist_tz = pytz.timezone('Asia/Kolkata')  # Define the IST timezone
+
 
 def get_user_sheet():
     """Get the user data sheet."""
@@ -31,12 +37,16 @@ def get_user_sheet():
         st.error(f"Error getting user sheet: {str(e)}")
         raise
 
+
 def save_user_info(user_data):
     """Save user information to the sheet."""
     try:
         sheet = get_user_sheet()
         headers = sheet.row_values(1)
-        expected_headers = ['mobile', 'weight', 'calorie_mode', 'protein_per_kg', 'fat_percent', 'last_updated']
+        expected_headers = [
+            'mobile', 'weight', 'calorie_mode', 'protein_per_kg',
+            'fat_percent', 'last_updated'
+        ]
 
         # Add headers if sheet is empty
         if not any(headers):
@@ -63,7 +73,7 @@ def save_user_info(user_data):
             user_data['calorie_mode'],
             user_data['protein_per_kg'],
             user_data['fat_percent'],
-            datetime.now().isoformat()
+            datetime.now(ist_tz)  #.isoformat()
         ]
 
         if user_row:
@@ -82,6 +92,7 @@ def save_user_info(user_data):
         st.error(f"Error saving user data: {str(e)}")
         return False
 
+
 def load_user_info():
     """Load user information from the sheet."""
     try:
@@ -92,12 +103,17 @@ def load_user_info():
 
         user_data_rows = sheet.get_all_records()
         # Filter rows for current user and sort by last_updated
-        user_rows = [row for row in user_data_rows if str(row.get('mobile', '')).strip() == str(mobile).strip()]
+        user_rows = [
+            row for row in user_data_rows
+            if str(row.get('mobile', '')).strip() == str(mobile).strip()
+        ]
         if not user_rows:
             return None
 
         # Sort by last_updated and get the most recent entry
-        latest_row = sorted(user_rows, key=lambda x: x.get('last_updated', ''), reverse=True)[0]
+        latest_row = sorted(user_rows,
+                            key=lambda x: x.get('last_updated', ''),
+                            reverse=True)[0]
         return {
             'weight': float(latest_row.get('weight', 70.0)),
             'calorie_mode': latest_row.get('calorie_mode', 'maintenance'),
@@ -108,13 +124,15 @@ def load_user_info():
         st.error(f"Error loading user data: {str(e)}")
         return None
 
+
 def get_sheets_client():
     """Initialize and return Google Sheets client."""
     try:
         # Load credentials from environment variable
         creds_json = os.getenv('GOOGLE_SHEETS_CREDENTIALS')
         if not creds_json:
-            raise ValueError("Google Sheets credentials not found in environment")
+            raise ValueError(
+                "Google Sheets credentials not found in environment")
 
         credentials_dict = json.loads(creds_json)
 
@@ -126,7 +144,8 @@ def get_sheets_client():
         ]
 
         # Authorize with credentials
-        creds = ServiceAccountCredentials.from_json_keyfile_dict(credentials_dict, scope)
+        creds = ServiceAccountCredentials.from_json_keyfile_dict(
+            credentials_dict, scope)
         client = gspread.authorize(creds)
 
         # Test the connection by listing spreadsheets
@@ -134,7 +153,9 @@ def get_sheets_client():
             client.list_spreadsheet_files()
         except Exception as e:
             if "PERMISSION_DENIED" in str(e):
-                st.error("Google Drive API access denied. Please ensure the API is enabled in Google Cloud Console.")
+                st.error(
+                    "Google Drive API access denied. Please ensure the API is enabled in Google Cloud Console."
+                )
             raise
 
         return client
@@ -144,6 +165,7 @@ def get_sheets_client():
     except Exception as e:
         st.error(f"Error initializing sheets client: {str(e)}")
         raise
+
 
 def get_sheet():
     """Get the existing food database sheet."""
@@ -155,16 +177,21 @@ def get_sheet():
             sheet.row_values(1)
             return sheet
         except gspread.SpreadsheetNotFound:
-            st.error("Could not find the sheet 'DB's Food Database'. Please make sure the sheet exists and is shared with the service account.")
+            st.error(
+                "Could not find the sheet 'DB's Food Database'. Please make sure the sheet exists and is shared with the service account."
+            )
             raise
         except Exception as e:
             if "PERMISSION_DENIED" in str(e):
-                st.error("Access denied to the sheet. Please ensure the sheet is shared with the service account email.")
+                st.error(
+                    "Access denied to the sheet. Please ensure the sheet is shared with the service account email."
+                )
             raise
 
     except Exception as e:
         st.error(f"Error accessing sheet: {str(e)}")
         raise
+
 
 def delete_food(food_name: str) -> bool:
     """Delete a food item from the sheet."""
@@ -210,6 +237,7 @@ def delete_food(food_name: str) -> bool:
         st.error(f"Error deleting food from sheet: {str(e)}")
         return False
 
+
 def get_all_foods():
     """Get all foods from the sheet as a pandas DataFrame."""
     try:
@@ -228,6 +256,7 @@ def get_all_foods():
         st.error(f"Error loading foods from sheet: {str(e)}")
         return pd.DataFrame()
 
+
 def add_food(food_data):
     """Add a new food item to the sheet."""
     try:
@@ -239,9 +268,13 @@ def add_food(food_data):
             raise ValueError("Sheet headers not found")
 
         # Check if food already exists
-        existing_foods = sheet.col_values(1)[1:]  # Get all food names except header
-        if food_data['Food Name'].strip().lower() in [f.strip().lower() for f in existing_foods]:
-            raise ValueError(f"Food item '{food_data['Food Name']}' already exists")
+        existing_foods = sheet.col_values(1)[
+            1:]  # Get all food names except header
+        if food_data['Food Name'].strip().lower() in [
+                f.strip().lower() for f in existing_foods
+        ]:
+            raise ValueError(
+                f"Food item '{food_data['Food Name']}' already exists")
 
         # Create a row with values in the correct order based on sheet headers
         row = []
@@ -267,9 +300,11 @@ def add_food(food_data):
                 if header_lower == 'fat':
                     value = food_data.get('Fat', food_data.get('fat', 0))
                 elif header_lower == 'category':
-                    value = food_data.get('Category', food_data.get('category', 'veg'))
+                    value = food_data.get('Category',
+                                          food_data.get('category', 'veg'))
                 elif header_lower == 'basis':
-                    value = food_data.get('Basis', food_data.get('basis', 'gm'))
+                    value = food_data.get('Basis',
+                                          food_data.get('basis', 'gm'))
 
             row.append(value if value is not None else '')
 
@@ -279,44 +314,49 @@ def add_food(food_data):
     except Exception as e:
         st.error(f"Error adding food to sheet: {str(e)}")
         raise
+
+
 def get_daily_log_sheet():
     """Get the daily log sheet."""
     try:
         client = get_sheets_client()
         spreadsheet = client.open("DB's Food Database")
-        
+
         # Get all worksheets
         worksheets = spreadsheet.worksheets()
         log_sheet = None
-        
+
         # Look for existing Daily Logs sheet
         for worksheet in worksheets:
             if worksheet.title == 'Daily Logs':
                 log_sheet = worksheet
                 break
-                
+
         # If Daily Logs sheet doesn't exist, create it with headers
         if not log_sheet:
             log_sheet = spreadsheet.add_worksheet('Daily Logs', 1, 11)
-            headers = ['Mobile', 'Timestamp', 'Meal Type', 'Weight', 'Basis', 'Food Name', 
-                      'Category', 'Calories', 'Protein', 'Carbs', 'Fat']
+            headers = [
+                'Mobile', 'Timestamp', 'Meal Type', 'Weight', 'Basis',
+                'Food Name', 'Category', 'Calories', 'Protein', 'Carbs', 'Fat'
+            ]
             log_sheet.append_row(headers)
-            
+
         return log_sheet
     except Exception as e:
         st.error(f"Error getting daily log sheet: {str(e)}")
         raise
 
+
 def save_meal_log(meal_data):
     """Save meal log to the sheet."""
     try:
         sheet = get_daily_log_sheet()
-        
-        # Prepare row data
-        from datetime import datetime
+
+        ist_time = datetime.now(ist_tz)  # Get current time in IST
+
         row_data = [
             meal_data['mobile'],
-            datetime.now().isoformat(),
+            ist_time.isoformat(),  # Use the IST timestamp
             meal_data['meal_type'],
             meal_data['weight'],
             meal_data['basis'],
@@ -327,30 +367,32 @@ def save_meal_log(meal_data):
             meal_data['carbs'],
             meal_data['fat']
         ]
-        
+
         sheet.append_row(row_data)
         return True
     except Exception as e:
         st.error(f"Error saving meal log: {str(e)}")
         return False
 
+
 def get_daily_logs(mobile, date=None):
     """Get daily logs for a specific mobile number and optional date."""
     try:
         sheet = get_daily_log_sheet()
         records = sheet.get_all_records()
-        
+
         # Filter by mobile
         logs = [r for r in records if str(r['Mobile']) == str(mobile)]
-        
+
         # Filter by date if provided
         if date:
             logs = [r for r in logs if r['Timestamp'].split('T')[0] == date]
-            
+
         return sorted(logs, key=lambda x: x['Timestamp'])
     except Exception as e:
         st.error(f"Error getting daily logs: {str(e)}")
         return []
+
 
 def delete_logs_by_date(mobile, date):
     """Delete all logs for a specific mobile number and date."""
@@ -359,29 +401,31 @@ def delete_logs_by_date(mobile, date):
         records = sheet.get_all_records()
         all_values = sheet.get_all_values()
         headers = all_values[0]
-        
+
         # Find rows to delete
         rows_to_delete = []
-        for idx, record in enumerate(records, start=2):  # Start from 2 to account for headers
-            if (str(record['Mobile']) == str(mobile) and 
-                record['Timestamp'].split('T')[0] == date):
+        for idx, record in enumerate(
+                records, start=2):  # Start from 2 to account for headers
+            if (str(record['Mobile']) == str(mobile)
+                    and record['Timestamp'].split('T')[0] == date):
                 rows_to_delete.append(idx)
-        
+
         # Delete rows in reverse order to maintain correct indices
         for row in sorted(rows_to_delete, reverse=True):
             sheet.delete_rows(row)
-            
+
         return True
     except Exception as e:
         st.error(f"Error deleting logs: {str(e)}")
         return False
+
 
 def get_daily_summaries(mobile):
     """Get daily summaries of calorie intake."""
     try:
         logs = get_daily_logs(mobile)
         summaries = {}
-        
+
         for log in logs:
             date = log['Timestamp'].split('T')[0]
             if date not in summaries:
@@ -391,12 +435,12 @@ def get_daily_summaries(mobile):
                     'total_carbs': 0,
                     'total_fat': 0
                 }
-            
+
             summaries[date]['total_calories'] += log['Calories']
             summaries[date]['total_protein'] += log['Protein']
             summaries[date]['total_carbs'] += log['Carbs']
             summaries[date]['total_fat'] += log['Fat']
-            
+
         return [{'date': k, **v} for k, v in summaries.items()]
     except Exception as e:
         st.error(f"Error getting daily summaries: {str(e)}")
