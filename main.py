@@ -188,7 +188,8 @@ elif st.session_state.mobile_verified:
         st.header("Daily Progress")
 
         # Get today's logs from Google Sheets
-        today_logs = get_daily_logs(st.session_state.mobile)
+        today = datetime.now().strftime('%d-%m-%Y')
+        today_logs = get_daily_logs(st.session_state.mobile, today)
         if today_logs:
             total_calories = sum(log['Calories'] for log in today_logs)
             total_protein = sum(log['Protein'] for log in today_logs)
@@ -205,53 +206,53 @@ elif st.session_state.mobile_verified:
         # Create consolidated progress chart
         fig = go.Figure()
 
-        # Add main calorie gauge
+        # Add main calorie gauge (simplified, without threshold)
         fig.add_trace(go.Indicator(
             mode="gauge+number+delta",
             value=total_calories,
-            domain={'x': [0, 1], 'y': [0, 0.5]},
-            title={'text': f"Daily Calories<br><span style='color: {status_color}'>{status_text}</span>", 'font': {'size': 20}},
+            domain={'x': [0.1, 0.9], 'y': [0, 0.4]},
+            title={'text': f"Daily Calories<br><span style='color: {status_color}'>{status_text}</span>", 
+                   'font': {'size': 18}},
             delta={'reference': target_calories, 'relative': False},
             gauge={
-                'axis': {'range': [0, target_calories * 1.5]},
+                'axis': {'range': [0, target_calories * 1.2]},
                 'bar': {'color': status_color},
-                'threshold': {
-                    'line': {'color': "red", 'width': 2},
-                    'thickness': 0.75,
-                    'value': target_calories
-                }
+                'bgcolor': "white",
             }
         ))
 
-        # Add macronutrient indicators
+        # Add macronutrient indicators in a balanced layout
         fig.add_trace(go.Indicator(
             mode="number+delta",
             value=total_protein,
-            title={'text': "Protein (g)"},
+            title={'text': "Protein (g)", 'font': {'size': 16}},
             delta={'reference': protein_target},
-            domain={'x': [0, 0.3], 'y': [0.6, 1]}
+            domain={'x': [0.05, 0.3], 'y': [0.5, 0.85]}
         ))
 
         fig.add_trace(go.Indicator(
             mode="number+delta",
             value=total_fat,
-            title={'text': "Fat (g)"},
+            title={'text': "Fat (g)", 'font': {'size': 16}},
             delta={'reference': fat_target},
-            domain={'x': [0.35, 0.65], 'y': [0.6, 1]}
+            domain={'x': [0.35, 0.6], 'y': [0.5, 0.85]}
         ))
 
         fig.add_trace(go.Indicator(
             mode="number+delta",
             value=total_carbs,
-            title={'text': "Carbs (g)"},
+            title={'text': "Carbs (g)", 'font': {'size': 16}},
             delta={'reference': carb_target},
-            domain={'x': [0.7, 1], 'y': [0.6, 1]}
+            domain={'x': [0.65, 0.9], 'y': [0.5, 0.85]}
         ))
 
         fig.update_layout(
-            height=500,
+            height=400,
+            margin=dict(l=20, r=20, t=30, b=20),
             grid={'rows': 2, 'columns': 1, 'pattern': "independent"},
-            template='plotly_dark'
+            template='plotly_white',
+            paper_bgcolor='rgba(0,0,0,0)',
+            plot_bgcolor='rgba(0,0,0,0)'
         )
 
         st.plotly_chart(fig, use_container_width=True)
