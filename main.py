@@ -434,7 +434,60 @@ elif st.session_state.mobile_verified:
         # Load food database
         food_db = load_food_database()
 
-    with tabs[2]: #Daily Log Tab
+    with tabs[2]:  # Daily Log Tab
         st.header("Daily Log")
-        #Add your daily log display code here.  This will require adapting your existing code to display the daily log in a user-friendly manner.
-        # Example:  Iterate through st.session_state.daily_log and display the logged food items for each meal.
+        
+        # Today's date for filtering
+        from datetime import datetime
+        today = datetime.now().strftime('%Y-%m-%d')
+        
+        # Get logs for today
+        today_logs = get_daily_logs(st.session_state.mobile, today)
+        
+        st.subheader("Today's Calorie Intake")
+        if today_logs:
+            log_df = pd.DataFrame(today_logs)
+            display_cols = ['Timestamp', 'Meal Type', 'Food Name', 'Category', 
+                          'Calories', 'Protein', 'Carbs', 'Fat']
+            
+            # Format timestamp to show only time
+            log_df['Timestamp'] = pd.to_datetime(log_df['Timestamp']).dt.strftime('%H:%M')
+            
+            st.dataframe(log_df[display_cols], hide_index=True)
+        else:
+            st.info("No meals logged today")
+            
+        st.divider()
+        
+        # Daily Summary View
+        st.subheader("Daily Total Calorie Intake Summary")
+        summaries = get_daily_summaries(st.session_state.mobile)
+        if summaries:
+            summary_df = pd.DataFrame(summaries)
+            st.dataframe(summary_df, hide_index=True)
+        else:
+            st.info("No meal history available")
+            
+        st.divider()
+        
+        # Delete Logs Section
+        st.subheader("Clear Daily Logs")
+        col1, col2 = st.columns([2, 1])
+        
+        with col1:
+            delete_date = st.date_input("Select date to clear logs", 
+                                      value=datetime.now().date(),
+                                      key="delete_date")
+        
+        with col2:
+            if st.button("Delete Logs", type="secondary"):
+                if st.session_state.get("confirm_delete") != delete_date:
+                    st.session_state.confirm_delete = delete_date
+                    st.warning(f"Are you sure you want to delete all logs for {delete_date}? Click again to confirm.")
+                else:
+                    if delete_logs_by_date(st.session_state.mobile, str(delete_date)):
+                        st.success("Logs deleted successfully!")
+                        st.session_state.pop("confirm_delete", None)
+                        st.rerun()
+                    else:
+                        st.error("Failed to delete logs")

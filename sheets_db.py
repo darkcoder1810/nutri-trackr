@@ -333,3 +333,71 @@ def save_meal_log(meal_data):
     except Exception as e:
         st.error(f"Error saving meal log: {str(e)}")
         return False
+
+def get_daily_logs(mobile, date=None):
+    """Get daily logs for a specific mobile number and optional date."""
+    try:
+        sheet = get_daily_log_sheet()
+        records = sheet.get_all_records()
+        
+        # Filter by mobile
+        logs = [r for r in records if str(r['Mobile']) == str(mobile)]
+        
+        # Filter by date if provided
+        if date:
+            logs = [r for r in logs if r['Timestamp'].split('T')[0] == date]
+            
+        return sorted(logs, key=lambda x: x['Timestamp'])
+    except Exception as e:
+        st.error(f"Error getting daily logs: {str(e)}")
+        return []
+
+def delete_logs_by_date(mobile, date):
+    """Delete all logs for a specific mobile number and date."""
+    try:
+        sheet = get_daily_log_sheet()
+        records = sheet.get_all_records()
+        all_values = sheet.get_all_values()
+        headers = all_values[0]
+        
+        # Find rows to delete
+        rows_to_delete = []
+        for idx, record in enumerate(records, start=2):  # Start from 2 to account for headers
+            if (str(record['Mobile']) == str(mobile) and 
+                record['Timestamp'].split('T')[0] == date):
+                rows_to_delete.append(idx)
+        
+        # Delete rows in reverse order to maintain correct indices
+        for row in sorted(rows_to_delete, reverse=True):
+            sheet.delete_rows(row)
+            
+        return True
+    except Exception as e:
+        st.error(f"Error deleting logs: {str(e)}")
+        return False
+
+def get_daily_summaries(mobile):
+    """Get daily summaries of calorie intake."""
+    try:
+        logs = get_daily_logs(mobile)
+        summaries = {}
+        
+        for log in logs:
+            date = log['Timestamp'].split('T')[0]
+            if date not in summaries:
+                summaries[date] = {
+                    'total_calories': 0,
+                    'total_protein': 0,
+                    'total_carbs': 0,
+                    'total_fat': 0
+                }
+            
+            summaries[date]['total_calories'] += log['Calories']
+            summaries[date]['total_protein'] += log['Protein']
+            summaries[date]['total_carbs'] += log['Carbs']
+            summaries[date]['total_fat'] += log['Fat']
+            
+        return [{'date': k, **v} for k, v in summaries.items()]
+    except Exception as e:
+        st.error(f"Error getting daily summaries: {str(e)}")
+        return []
