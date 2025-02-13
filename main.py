@@ -34,19 +34,20 @@ if not st.session_state.mobile_verified:
     st.subheader("Please enter your mobile number to continue")
 
     mobile = st.text_input("Mobile Number")
-    if st.button("Continue", key="continue_with_mobile") and mobile:
-        st.session_state.mobile = mobile
-        user_data = load_user_info()
-
-        if user_data:
-            st.session_state.user_info = user_data
-            st.session_state.mobile_verified = True
-            st.rerun()
+    if st.button("Continue", key="continue_mobile"):
+        if not mobile:
+            st.error("Please enter a mobile number")
         else:
-            st.warning("No existing data found. Please enter your information.")
-            st.switch_page("pages/user_info.py")
-    elif st.button("Continue", key="continue_no_mobile") and not mobile:
-        st.error("Please enter a mobile number")
+            st.session_state.mobile = mobile
+            user_data = load_user_info()
+            
+            if user_data:
+                st.session_state.user_info = user_data
+                st.session_state.mobile_verified = True
+                st.rerun()
+            else:
+                st.warning("No existing data found. Please enter your information.")
+                st.switch_page("pages/user_info.py")
 
 # Main application
 elif st.session_state.mobile_verified:
