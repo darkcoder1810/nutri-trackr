@@ -68,12 +68,9 @@ def save_user_info(user_data):
         # Prepare row data
         from datetime import datetime
         row_data = [
-            mobile,
-            user_data['weight'],
-            user_data['calorie_mode'],
-            user_data['protein_per_kg'],
-            user_data['fat_percent'],
-            datetime.now(ist_tz)  #.isoformat()
+            mobile, user_data['weight'], user_data['calorie_mode'],
+            user_data['protein_per_kg'], user_data['fat_percent'],
+            datetime.now(ist_tz).isoformat()
         ]
 
         if user_row:
@@ -434,7 +431,8 @@ def get_daily_summaries(mobile):
         summaries = {}
 
         for log in logs:
-            date = log['Date']  # Using the already formatted date from get_daily_logs
+            date = log[
+                'Date']  # Using the already formatted date from get_daily_logs
             if date not in summaries:
                 summaries[date] = {
                     'total_calories': 0,
