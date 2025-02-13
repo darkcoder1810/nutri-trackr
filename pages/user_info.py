@@ -46,11 +46,9 @@ def show_user_info_form():
                     st.session_state.user_info = user_data
                     st.success("Information saved successfully!")
                     return True
-            else:
-                st.error("Error saving information")
-        elif submitted and not mobile:
-            st.error("Mobile number is required")
-    return False
+                else:
+                    st.error("Error saving information")
+        return False
 
 # Initialize session state
 if 'user_info' not in st.session_state:
