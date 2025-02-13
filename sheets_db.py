@@ -434,7 +434,7 @@ def get_daily_summaries(mobile):
         summaries = {}
 
         for log in logs:
-            date = log['Timestamp'].split('T')[0]
+            date = log['Date']  # Using the already formatted date from get_daily_logs
             if date not in summaries:
                 summaries[date] = {
                     'total_calories': 0,
