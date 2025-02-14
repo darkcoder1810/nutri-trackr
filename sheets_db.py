@@ -44,7 +44,7 @@ def save_user_info(user_data):
         sheet = get_user_sheet()
         headers = sheet.row_values(1)
         expected_headers = [
-            'mobile', 'weight', 'calorie_mode', 'protein_per_kg',
+            'mobile', 'full_name', 'weight', 'calorie_mode', 'protein_per_kg',
             'fat_percent', 'last_updated'
         ]
 
@@ -66,10 +66,10 @@ def save_user_info(user_data):
                 break
 
         # Prepare row data
-        from datetime import datetime
         row_data = [
-            mobile, user_data['weight'], user_data['calorie_mode'],
-            user_data['protein_per_kg'], user_data['fat_percent'],
+            mobile, user_data['full_name'], user_data['weight'],
+            user_data['calorie_mode'], user_data['protein_per_kg'],
+            user_data['fat_percent'],
             datetime.now(ist_tz).isoformat()
         ]
 
@@ -112,6 +112,8 @@ def load_user_info():
                             key=lambda x: x.get('last_updated', ''),
                             reverse=True)[0]
         return {
+            'full_name': latest_row.get('full_name',
+                                        'iHacK'),  # Retrieve full name
             'weight': float(latest_row.get('weight', 70.0)),
             'calorie_mode': latest_row.get('calorie_mode', 'maintenance'),
             'protein_per_kg': float(latest_row.get('protein_per_kg', 2.0)),
@@ -372,6 +374,32 @@ def save_meal_log(meal_data):
         return False
 
 
+# def get_daily_logs(mobile, date=None):
+#     """Get daily logs for a specific mobile number and optional date."""
+#     try:
+#         sheet = get_daily_log_sheet()
+#         records = sheet.get_all_records()
+
+#         # Filter by mobile
+#         logs = [r for r in records if str(r['Mobile']) == str(mobile)]
+
+#         # Convert and format timestamps
+#         for log in logs:
+#             dt = datetime.fromisoformat(log['Timestamp'])
+#             log['Date'] = dt.strftime('%d-%m-%Y')
+#             log['Time'] = dt.strftime('%H:%M')
+#             log['Timestamp'] = dt
+
+#         # Filter by date if provided
+#         if date:
+#             logs = [r for r in logs if log['Date'] == date]
+
+#         return sorted(logs, key=lambda x: x['Timestamp'])
+#     except Exception as e:
+#         st.error(f"Error getting daily logs: {str(e)}")
+#         return []
+
+
 def get_daily_logs(mobile, date=None):
     """Get daily logs for a specific mobile number and optional date."""
     try:
@@ -383,35 +411,41 @@ def get_daily_logs(mobile, date=None):
 
         # Convert and format timestamps
         for log in logs:
-            dt = datetime.fromisoformat(log['Timestamp'])
+            dt = datetime.fromisoformat(log['Timestamp']).astimezone(
+                pytz.timezone('Asia/Kolkata'))
             log['Date'] = dt.strftime('%d-%m-%Y')
-            log['Time'] = dt.strftime('%H:%M')
+            log['Time'] = dt.strftime(
+                '%I:%M %p')  # Change here for AM/PM format
             log['Timestamp'] = dt
-
         # Filter by date if provided
         if date:
-            logs = [r for r in logs if log['Date'] == date]
-
+            logs = [r for r in logs if r['Date'] == date]
         return sorted(logs, key=lambda x: x['Timestamp'])
     except Exception as e:
         st.error(f"Error getting daily logs: {str(e)}")
         return []
 
 
-def delete_logs_by_date(mobile, date):
-    """Delete all logs for a specific mobile number and date."""
+def delete_logs_by_date_range(mobile, start_date, end_date):
+    """Delete all logs for a specific mobile number within a date range."""
     try:
         sheet = get_daily_log_sheet()
         records = sheet.get_all_records()
         all_values = sheet.get_all_values()
         headers = all_values[0]
 
+        # Convert date inputs to string format
+        start_date_str = start_date.strftime('%Y-%m-%d')
+        end_date_str = end_date.strftime('%Y-%m-%d')
+
         # Find rows to delete
         rows_to_delete = []
         for idx, record in enumerate(
                 records, start=2):  # Start from 2 to account for headers
+            log_date = record['Timestamp'].split('T')[
+                0]  # Date in 'YYYY-MM-DD' format
             if (str(record['Mobile']) == str(mobile)
-                    and record['Timestamp'].split('T')[0] == date):
+                    and start_date_str <= log_date <= end_date_str):
                 rows_to_delete.append(idx)
 
         # Delete rows in reverse order to maintain correct indices

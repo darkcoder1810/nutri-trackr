@@ -4,11 +4,7 @@ from utils import load_food_database
 from sheets_db import delete_food
 
 # Page config
-st.set_page_config(
-    page_title="Food Database",
-    page_icon="🗄️",
-    layout="wide"
-)
+st.set_page_config(page_title="Food Database", page_icon="🗄️", layout="wide")
 
 # Load custom CSS
 with open('.streamlit/style.css') as f:
@@ -19,6 +15,12 @@ st.title("🗄️ Food Database")
 
 # Load the database
 food_db = load_food_database()
+
+# Keep only the relevant columns
+food_db = food_db[[
+    'Weight', 'Basis', 'Food Name', 'Category', 'Calories', 'Protein', 'Carbs',
+    'Fat', 'Avg Weight'
+]]  # Exclude 'Fibre' and 'Source'
 
 # Display database statistics
 st.header("Database Statistics")
@@ -45,7 +47,8 @@ search_term = st.text_input("Search foods", "")
 
 # Filter the database based on search
 if search_term and 'Food Name' in food_db.columns:
-    filtered_db = food_db[food_db['Food Name'].str.contains(search_term, case=False)]
+    filtered_db = food_db[food_db['Food Name'].str.contains(search_term,
+                                                            case=False)]
 else:
     filtered_db = food_db
 
@@ -53,15 +56,16 @@ else:
 if not food_db.empty:
     sort_col = st.selectbox(
         "Sort by",
-        options=[col for col in food_db.columns if col in ['Food Name', 'Calories', 'Protein', 'Fat', 'Carbs']]
-    )
-    sort_order = st.radio("Sort order", ['Ascending', 'Descending'], horizontal=True)
+        options=[
+            col for col in food_db.columns
+            if col in ['Food Name', 'Calories', 'Protein', 'Fat', 'Carbs']
+        ])
+    sort_order = st.radio("Sort order", ['Ascending', 'Descending'],
+                          horizontal=True)
 
     # Sort the database
     filtered_db = filtered_db.sort_values(
-        by=sort_col, 
-        ascending=(sort_order == 'Ascending')
-    )
+        by=sort_col, ascending=(sort_order == 'Ascending'))
 
 # Display the table with delete buttons
 if not filtered_db.empty:
@@ -72,43 +76,53 @@ if not filtered_db.empty:
         st.dataframe(
             filtered_db,
             column_config={
-                "Food Name": st.column_config.TextColumn("Food Name"),
-                "Calories": st.column_config.NumberColumn("Calories (kcal)", format="%.1f"),
-                "Protein": st.column_config.NumberColumn("Protein (g)", format="%.1f"),
-                "Fat": st.column_config.NumberColumn("Fat (g)", format="%.1f"),
-                "Carbs": st.column_config.NumberColumn("Carbs (g)", format="%.1f"),
+                "Food Name":
+                st.column_config.TextColumn("Food Name"),
+                "Calories":
+                st.column_config.NumberColumn("Calories (kcal)",
+                                              format="%.1f"),
+                "Protein":
+                st.column_config.NumberColumn("Protein (g)", format="%.1f"),
+                "Fat":
+                st.column_config.NumberColumn("Fat (g)", format="%.1f"),
+                "Carbs":
+                st.column_config.NumberColumn("Carbs (g)", format="%.1f"),
             },
             hide_index=True,
         )
 
-    with col2:
-        # Custom CSS for delete buttons
-        st.markdown("""
-        <style>
-        .stButton>button {
-            padding: 0.1rem 0.5rem;
-            font-size: 0.7rem;
-            height: 1.5rem;
-            margin: 0.22rem 0;
-            min-height: 1.5rem;
-            line-height: 1;
-        }
-        div[data-testid="column"] {
-            padding: 0;
-            margin-top: 2.65rem;  /* Fine-tuned alignment with table rows */
-        }
-        </style>
-        """, unsafe_allow_html=True)
+    # with col2:
+    #     # Custom CSS for delete buttons
+    #     st.markdown("""
+    #     <style>
+    #     .stButton>button {
+    #         padding: 0.1rem 0.5rem;
+    #         font-size: 0.7rem;
+    #         height: 1.5rem;
+    #         margin: 0.22rem 0;
+    #         min-height: 1.5rem;
+    #         line-height: 1;
+    #     }
+    #     div[data-testid="column"] {
+    #         padding: 0;
+    #         margin-top: 2.65rem;  /* Fine-tuned alignment with table rows */
+    #     }
+    #     </style>
+    #     """,
+    #                 unsafe_allow_html=True)
 
-        # Add spacing to align with table header
-        st.write("")
+    #     # Add spacing to align with table header
+    #     st.write("")
 
-        # Delete buttons
-        for idx, row in filtered_db.iterrows():
-            if st.button("🗑️", key=f"delete_{idx}", help=f"Delete {row['Food Name']}", use_container_width=True):
-                if delete_food(row['Food Name']):
-                    st.cache_data.clear()
-                    st.rerun()
+    #     # Delete buttons
+    #     for idx, row in filtered_db.iterrows():
+    #         if st.button("🗑️",
+    #                      key=f"delete_{idx}",
+    #                      help=f"Delete {row['Food Name']}",
+    #                      use_container_width=True):
+    #             if delete_food(row['Food Name']):
+    #                 st.cache_data.clear()
+    #                 st.rerun()
 
 else:
     st.warning("No data available in the database")

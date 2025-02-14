@@ -1,10 +1,16 @@
 import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
+from datetime import datetime
 from utils import (calculate_calories, calculate_macros, load_food_database,
                    save_food_to_database, calculate_calories_from_macros,
                    food_exists_in_database)
-from sheets_db import load_user_info, save_user_info, save_meal_log, get_daily_logs, delete_logs_by_date, get_daily_summaries
+from sheets_db import load_user_info, save_user_info, save_meal_log, get_daily_logs, delete_logs_by_date_range, get_daily_summaries
+
+import pytz
+
+# Prepare row data
+ist_tz = pytz.timezone('Asia/Kolkata')  # Define the IST timezone
 
 # Page configuration
 st.set_page_config(page_title="Calorie Tracker", layout="wide")
@@ -30,13 +36,18 @@ if 'mobile_verified' not in st.session_state:
 
 # Mobile number verification section
 if not st.session_state.mobile_verified:
-    st.title("Welcome to NutriTrackr")
+    st.title("Welcome to NutriTracker")
     st.subheader("Please enter your mobile number to continue")
 
-    mobile = st.text_input("Mobile Number")
+    mobile = st.text_input("Mobile Number",
+                           max_chars=10)  # Limit to 10 characters
     if st.button("Continue", key="continue_mobile"):
         if not mobile:
             st.error("Please enter a mobile number")
+        elif not mobile.isdigit() or len(
+                mobile) != 10:  # Ensure only digits and length
+            st.error(
+                "Please enter a valid mobile number with exactly 10 digits.")
         else:
             st.session_state.mobile = mobile
             user_data = load_user_info()
@@ -53,10 +64,11 @@ if not st.session_state.mobile_verified:
 # Main application
 elif st.session_state.mobile_verified:
     # Add tabs for navigation
-    tabs = st.tabs(["🏠 Home", "➕ Add Food", "📊 Daily Log"])
+    tabs = st.tabs(
+        ["🏠 Home", "➕ Add Food", "📊 Daily Log", "👨🏾‍💻 About Developer"])
 
     with tabs[0]:  # Home tab
-        st.header("Welcome to NutriTrackr")
+        st.header("Welcome to NutriTracker")
         # Rest of the home content
         # Load food database
         food_db = load_food_database()
@@ -67,6 +79,8 @@ elif st.session_state.mobile_verified:
         # Sidebar for user info and goals
         with st.sidebar:
             st.header("User Information")
+            full_name = st.session_state.user_info.get('full_name', 'iHacK')
+            st.write(f"Name: {full_name}")  # Displaying Full Name
             weight = st.session_state.user_info.get('weight', 70.0)
             # Update mobile in user_info if not present
             if 'mobile' not in st.session_state.user_info and 'mobile' in st.session_state:
@@ -109,6 +123,102 @@ elif st.session_state.mobile_verified:
             st.write(f"Protein: {protein_target:.1f}g")
             st.write(f"Fat: {fat_target:.1f}g")
             st.write(f"Carbs: {carb_target:.1f}g")
+
+        # Display daily totals and progress
+        st.header("Daily Progress")
+
+        # Get today's logs from Google Sheets
+        today = datetime.now(pytz.timezone('Asia/Kolkata')).strftime(
+            '%d-%m-%Y')  # Ensure today's date is formatted correctly in IST
+        today_logs = get_daily_logs(st.session_state.mobile, today)
+        if today_logs:
+            total_calories = sum(log['Calories'] for log in today_logs)
+            total_protein = sum(log['Protein'] for log in today_logs)
+            total_fat = sum(log['Fat'] for log in today_logs)
+            total_carbs = sum(log['Carbs'] for log in today_logs)
+        else:
+            total_calories = total_protein = total_fat = total_carbs = 0
+
+        # Calories status calculation
+        calorie_difference = target_calories - total_calories
+        status_color_calories = "#2ECC71" if calorie_difference >= 0 else "#E74C3C"
+        calories_status_text = f"{abs(calorie_difference):.0f} kcal<br> {'remaining' if calorie_difference >= 0 else 'over'}"
+        fig_calories = go.Figure()
+        fig_calories.add_trace(
+            go.Indicator(
+                mode="number",
+                value=total_calories,
+                title={
+                    'text':
+                    f"Total Calories<br><span style='color: {status_color_calories}'>{calories_status_text}</span>"
+                }))
+        fig_calories.update_layout(height=250)  # Update the height here
+
+        # Protein status calculation
+        protein_difference = protein_target - total_protein
+        status_color_protein = "#2ECC71" if protein_difference >= 0 else "#E74C3C"
+        protein_status_text = f"{abs(protein_difference):.0f} g<br> {'remaining' if protein_difference >= 0 else 'over'}"
+        fig_protein = go.Figure()
+        fig_protein.add_trace(
+            go.Indicator(
+                mode="number",
+                value=total_protein,
+                title={
+                    'text':
+                    f"Total Protein (g)<br><span style='color: {status_color_protein}'>{protein_status_text}</span>"
+                }))
+        fig_protein.update_layout(height=250)  # Update the height here
+
+        # Fat status calculation
+        fat_difference = fat_target - total_fat
+        status_color_fat = "#2ECC71" if fat_difference >= 0 else "#E74C3C"
+        fat_status_text = f"{abs(fat_difference):.0f} g<br> {'remaining' if fat_difference >= 0 else 'over'}"
+        fig_fat = go.Figure()
+        fig_fat.add_trace(
+            go.Indicator(
+                mode="number",
+                value=total_fat,
+                title={
+                    'text':
+                    f"Total Fat (g)<br><span style='color: {status_color_fat}'>{fat_status_text}</span>"
+                }))
+        fig_fat.update_layout(height=250)  # Update the height here
+
+        # Carbs status calculation
+        carbs_difference = carb_target - total_carbs
+        status_color_carbs = "#2ECC71" if carbs_difference >= 0 else "#E74C3C"
+        carbs_status_text = f"{abs(carbs_difference):.0f} g<br> {'remaining' if carbs_difference >= 0 else 'over'}"
+        fig_carbs = go.Figure()
+        fig_carbs.add_trace(
+            go.Indicator(
+                mode="number",
+                value=total_carbs,
+                title={
+                    'text':
+                    f"Total Carbs (g)<br><span style='color: {status_color_carbs}'>{carbs_status_text}</span>"
+                }))
+        fig_carbs.update_layout(height=250)  # Update the height here
+
+        # Display charts in a single row using columns
+        col1, col2, col3, col4 = st.columns(4)
+        with col1:
+            st.plotly_chart(fig_calories, use_container_width=True)
+        with col2:
+            st.plotly_chart(fig_protein, use_container_width=True)
+        with col3:
+            st.plotly_chart(fig_fat, use_container_width=True)
+        with col4:
+            st.plotly_chart(fig_carbs, use_container_width=True)
+
+        # # Clear daily log button
+        # if st.button("Clear Daily Log"):
+        #     st.session_state.daily_log = {
+        #         'breakfast': [],
+        #         'lunch': [],
+        #         'snacks': [],
+        #         'dinner': []
+        #     }
+        #     st.rerun()
 
         # Food logging section
         st.header("Log Your Meals")
@@ -184,88 +294,8 @@ elif st.session_state.mobile_verified:
                         }
                         save_meal_log(meal_log)
 
-        # Display daily totals and progress
-        st.header("Daily Progress")
-
-        # Get today's logs from Google Sheets
-        today = datetime.now().strftime('%d-%m-%Y')
-        today_logs = get_daily_logs(st.session_state.mobile, today)
-        if today_logs:
-            total_calories = sum(log['Calories'] for log in today_logs)
-            total_protein = sum(log['Protein'] for log in today_logs)
-            total_fat = sum(log['Fat'] for log in today_logs)
-            total_carbs = sum(log['Carbs'] for log in today_logs)
-        else:
-            total_calories = total_protein = total_fat = total_carbs = 0
-
-        # Calculate remaining/excess calories
-        calorie_difference = target_calories - total_calories
-        status_color = "#2ECC71" if calorie_difference >= 0 else "#E74C3C"
-        status_text = f"{abs(calorie_difference):.0f} kcal {'remaining' if calorie_difference >= 0 else 'over'}"
-
-        # Create consolidated progress chart
-        fig = go.Figure()
-
-        # Add main calorie gauge (simplified, without threshold)
-        fig.add_trace(go.Indicator(
-            mode="gauge+number+delta",
-            value=total_calories,
-            domain={'x': [0.1, 0.9], 'y': [0, 0.4]},
-            title={'text': f"Daily Calories<br><span style='color: {status_color}'>{status_text}</span>", 
-                   'font': {'size': 18}},
-            delta={'reference': target_calories, 'relative': False},
-            gauge={
-                'axis': {'range': [0, target_calories * 1.2]},
-                'bar': {'color': status_color},
-                'bgcolor': "white",
-            }
-        ))
-
-        # Add macronutrient indicators in a balanced layout
-        fig.add_trace(go.Indicator(
-            mode="number+delta",
-            value=total_protein,
-            title={'text': "Protein (g)", 'font': {'size': 16}},
-            delta={'reference': protein_target},
-            domain={'x': [0.05, 0.3], 'y': [0.5, 0.85]}
-        ))
-
-        fig.add_trace(go.Indicator(
-            mode="number+delta",
-            value=total_fat,
-            title={'text': "Fat (g)", 'font': {'size': 16}},
-            delta={'reference': fat_target},
-            domain={'x': [0.35, 0.6], 'y': [0.5, 0.85]}
-        ))
-
-        fig.add_trace(go.Indicator(
-            mode="number+delta",
-            value=total_carbs,
-            title={'text': "Carbs (g)", 'font': {'size': 16}},
-            delta={'reference': carb_target},
-            domain={'x': [0.65, 0.9], 'y': [0.5, 0.85]}
-        ))
-
-        fig.update_layout(
-            height=400,
-            margin=dict(l=20, r=20, t=30, b=20),
-            grid={'rows': 2, 'columns': 1, 'pattern': "independent"},
-            template='plotly_white',
-            paper_bgcolor='rgba(0,0,0,0)',
-            plot_bgcolor='rgba(0,0,0,0)'
-        )
-
-        st.plotly_chart(fig, use_container_width=True)
-
-        # Clear daily log button
-        if st.button("Clear Daily Log"):
-            st.session_state.daily_log = {
-                'breakfast': [],
-                'lunch': [],
-                'snacks': [],
-                'dinner': []
-            }
-            st.rerun()
+                        # Rerun to refresh the chart/UI
+                        st.rerun()
 
     with tabs[1]:  # Add Food tab
         st.header("Add New Food")
@@ -384,11 +414,13 @@ elif st.session_state.mobile_verified:
         food_db = load_food_database()
 
     with tabs[2]:  # Daily Log Tab
-        st.header("Daily Log")
+        # st.header("Daily Log")
+        # st.divider()
 
         # Today's date for filtering
         from datetime import datetime
-        today = datetime.now().strftime('%d-%m-%Y')
+        today = datetime.now(pytz.timezone('Asia/Kolkata')).strftime(
+            '%d-%m-%Y')  # Ensure today's date is formatted correctly in IST
 
         # Get logs for today
         today_logs = get_daily_logs(st.session_state.mobile, today)
@@ -403,7 +435,7 @@ elif st.session_state.mobile_verified:
 
             # Format timestamp to show only time
             log_df['Timestamp'] = pd.to_datetime(
-                log_df['Timestamp']).dt.strftime('%H:%M')
+                log_df['Timestamp']).dt.strftime('%I:%M %p')
 
             st.dataframe(log_df[display_cols], hide_index=True)
         else:
@@ -412,10 +444,19 @@ elif st.session_state.mobile_verified:
         st.divider()
 
         # Daily Summary View
-        st.subheader("Daily Total Calorie Intake Summary")
+        st.subheader("Daywise Total Calorie Intake Summary")
         summaries = get_daily_summaries(st.session_state.mobile)
         if summaries:
             summary_df = pd.DataFrame(summaries)
+
+            # Convert the 'date' column to datetime format for correct sorting
+            summary_df['date'] = pd.to_datetime(summary_df['date'],
+                                                format='%d-%m-%Y')
+            # Sort the summary by date in descending order
+            summary_df.sort_values(by='date', ascending=False, inplace=True)
+            # Convert 'date' back to string if needed for display
+            summary_df['date'] = summary_df['date'].dt.strftime('%d-%m-%Y')
+
             st.dataframe(summary_df, hide_index=True)
         else:
             st.info("No meal history available")
@@ -423,26 +464,34 @@ elif st.session_state.mobile_verified:
         st.divider()
 
         # Delete Logs Section
-        st.subheader("Clear Daily Logs")
-        col1, col2 = st.columns([2, 1])
-
+        st.subheader("Clear Specific Logs")
+        col1, col2 = st.columns(2)
         with col1:
-            delete_date = st.date_input("Select date to clear logs",
-                                        value=datetime.now().date(),
-                                        key="delete_date")
-
+            start_date = st.date_input("Select start date to clear logs",
+                                       value=datetime.now().date(),
+                                       key="start_date")
         with col2:
-            if st.button("Delete Logs", type="secondary"):
-                if st.session_state.get("confirm_delete") != delete_date:
-                    st.session_state.confirm_delete = delete_date
-                    st.warning(
-                        f"Are you sure you want to delete all logs for {delete_date}? Click again to confirm."
+            end_date = st.date_input("Select end date to clear logs",
+                                     value=datetime.now().date(),
+                                     key="end_date")
+        if st.button("Delete Logs in Range", type="secondary"):
+            if start_date > end_date:
+                st.error("Start date must be before end date.")
+            else:
+                if delete_logs_by_date_range(st.session_state.mobile,
+                                             start_date, end_date):
+                    st.success(
+                        f"Logs deleted successfully between {start_date} and {end_date}!"
                     )
+                    st.rerun()
                 else:
-                    if delete_logs_by_date(st.session_state.mobile,
-                                           str(delete_date)):
-                        st.success("Logs deleted successfully!")
-                        st.session_state.pop("confirm_delete", None)
-                        st.rerun()
-                    else:
-                        st.error("Failed to delete logs")
+                    st.error("Failed to delete logs.")
+
+    with tabs[3]:  # Developer Details Tab
+        st.subheader("It’s Basically AI 🤖")
+
+        st.markdown("""
+        -Please do email me at dhiraj1810.db@gmail.com if you have any questions or feedback.  
+        -I’m open to new ideas and collaborations. Thank you for using this app! ✌🏽  
+            """)
+        #st.write("Email : darkcoders2016@gmail.com")
