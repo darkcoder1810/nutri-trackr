@@ -14,3 +14,8 @@ dependencies = [
     "twilio>=9.4.5",
     "pytz>=2023.3.0",
 ]
+
+[tool.poetry]
+packages = [
+    { include = "main" }  # Ensure that "main" corresponds to the module/package structure in your project
+]
